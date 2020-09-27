@@ -1,12 +1,12 @@
 import sys
 sys.path.append('..')
 import pclpy
-import pcl
 import cv2
 import numpy as np
 import pdal
 import pandas as pd
 import pclpy
+import os
 
 
 
@@ -33,6 +33,8 @@ def FloorRemove(points, scalar=0.2, slope=0.2, threshold=0.45, window=16.0, RGB=
 
     Nogroundpoints = np.array(points1[['X','Y','Z']].tolist())
     ground = np.array(points2[['X','Y','Z']].tolist())
+    os.remove('LIDARRF.ply')
+    
     if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
         if len(Nogroundpoints) > 0:
             Nogroundpoints = pclpy.pcl.PointCloud.PointXYZRGB(np.array(points1[['X','Y','Z']].tolist()),np.array(points1[['Red','Green','Blue']].tolist()))
@@ -64,18 +66,21 @@ def ExtractNormals(points, Ksearch = 0.1):
 
 
 def EucladeanClusterExtract(points, tol=2, minc=20, maxc=25000):
-    filtered_points = pcl.PointCloud(points.astype(np.float32))
-    tree = filtered_points.make_kdtree()
-    ec = filtered_points.make_EuclideanClusterExtraction()
-    ec.set_ClusterTolerance(tol)
-    ec.set_MinClusterSize(minc)
-    ec.set_MaxClusterSize(maxc)
-    ec.set_SearchMethod (tree)
-    cluster_indices = ec.Extract()
-    cluster_list = []
-    for indices in cluster_indices:
-        points = filtered_points.to_array()[indices]
-        cluster_list.append(points)
+    filtered_points = pclpy.pcl.segmentation.EuclideanClusterExtraction.PointXYZ()
+    kdtree = pclpy.pcl.search.KdTree.PointXYZ()
+    pointstocluster = pclpy.pcl.PointCloud.PointXYZ(points)
+    
+    kdtree.setInputCloud(pointstocluster)
+    filtered_points.setInputCloud(pointstocluster)
+    filtered_points.setClusterTolerance(tol)
+    filtered_points.setMinClusterSize(minc)
+    filtered_points.setMaxClusterSize(maxc)
+    filtered_points.setSearchMethod(kdtree)
+
+    pI = pclpy.pcl.vectors.PointIndices()
+    filtered_points.extract(pI)
+
+    cluster_list = [pointstocluster.xyz[i2.indices] for i2 in pI]
     return cluster_list
 
 def RegionGrowing(Points, Ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30.0, curvature=1.0):
@@ -105,6 +110,44 @@ def RegionGrowing(Points, Ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30
     ppclusters = [segcloud.xyz[i2.indices] for i2 in clusters]
     return ppclusters
 
+
+def segment(points, model=pclpy.pcl.sample_consensus.SACMODEL_LINE, method=pclpy.pcl.sample_consensus.SAC_RANSAC, miter=1000, distance=0.5, rlim=[0,0.5]):   
+    segcloud = pclpy.pcl.PointCloud.PointXYZ(points)
+    cylseg = pclpy.pcl.segmentation.SACSegmentation.PointXYZ()
+
+    cylseg.setInputCloud(segcloud)
+    cylseg.setDistanceThreshold(distance)
+    cylseg.setOptimizeCoefficients(True)
+    cylseg.setMethodType(method)
+    cylseg.setModelType(model)
+    cylseg.setMaxIterations(miter)
+    cylseg.setRadiusLimits(rlim[0],rlim[1])
+    pI = pclpy.pcl.PointIndices()
+    Mc = pclpy.pcl.ModelCoefficients()
+    cylseg.segment(pI,Mc)
+    return pI.indices, Mc.values
+
+def segment_normals(points, searchRadius=20, model=pclpy.pcl.sample_consensus.SACMODEL_LINE, method=pclpy.pcl.sample_consensus.SAC_RANSAC, normalweight=0.0001, miter=1000, distance=0.5, rlim=[0,0.5]):
+    segNormals = ExtractNormals(points, searchRadius)
+    
+    segcloud = pclpy.pcl.PointCloud.PointXYZ(points)
+    cylseg = pclpy.pcl.segmentation.SACSegmentationFromNormals.PointXYZ_Normal()
+
+    cylseg.setInputCloud(segcloud)
+    cylseg.setInputNormals(segNormals)
+    cylseg.setDistanceThreshold(distance)
+    cylseg.setOptimizeCoefficients(True)
+    cylseg.setMethodType(method)
+    cylseg.setModelType(model)
+    cylseg.setMaxIterations(miter)
+    cylseg.setRadiusLimits(rlim[0],rlim[1])
+    cylseg.setNormalDistanceWeight(normalweight)
+    pI = pclpy.pcl.PointIndices()
+    Mc = pclpy.pcl.ModelCoefficients()
+    cylseg.segment(pI,Mc)
+    return pI.indices, Mc.values
+
+"""
 def segment_normals(points, searchRadius=20, model=pcl.SACMODEL_LINE, method=pcl.SAC_RANSAC, normalweight=0.0001, miter=1000, distance=0.5, rlim=[0,0.5]):
     
     segcloud = pcl.PointCloud(points)
@@ -118,7 +161,7 @@ def segment_normals(points, searchRadius=20, model=pcl.SACMODEL_LINE, method=pcl
     cylseg.set_radius_limits(rlim[0],rlim[1])
     indices, model = cylseg.segment()
     return indices, model
-
+"""
 
 
 
