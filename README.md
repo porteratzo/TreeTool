@@ -3,14 +3,23 @@
 # Requirment Installation
 
 conda install jupyter 
+
 conda config --add channels conda-forge
+
 pip install opencv-contrib-python
+
 conda install laspy
+
 conda install -c conda-forge pdal python-pdal gdal
+
 conda install -c sirokujira python-pcl
+
 pip install pclpy
+
 conda install matplotlib
+
 conda install pandas
+
 conda install -c anaconda scipy
 
 # **I was here: mysterious pirate**
