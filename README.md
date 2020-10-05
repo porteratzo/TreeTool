@@ -52,12 +52,26 @@ conda config --add channels conda-forge
 ```
 python -m pip install opencv-contrib-python
 ```
-* 
-* conda install laspy
-* conda install -c conda-forge pdal python-pdal gdal
-* conda install -c sirokujira python-pcl
-* pip install pclpy
+* Install laspy, a library for reading, writing and modifying files in format LAS for LiDAR data.
+```
+conda install laspy
+```
+ * Install PDAL (Point Data Abstraction Library), and GDAL (Geospatial Data Abstraction Library) for python. The first one will be useful for dealing with point clouds while the second one handles raster and vector data.
+ ```
+conda install -c conda-forge pdal python-pdal gdal
+```
+ * Install python-pcl a python wrapper for the pointcloud library (PCL) developed by Sirokujira. It makes it easier to install dependencies for pclpy, which we install below.
+```
+ conda install -c sirokujira python-pcl
+```
+* Install pclpy, another python wrapper for the pointcloud library (PCL). 
+```
+python -m pip install pclpy
+```
+* Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
+```
 * conda install matplotlib
+```
 * conda install pandas
 * conda install -c anaconda scipy
 
