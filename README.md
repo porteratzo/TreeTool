@@ -1,6 +1,6 @@
 # NISTTreeDetector
 
-An important goal for our team is to assess the carbon content in trees. With that goal in mind, we have created models to detect trees in the wild and measure their diameters at brest height (1.3 m). This document describes the requirements, installation and how to run our code to detect trees and measure their diameter at breast height. As input, we have a cloud of points.
+An important goal for our team is to assess the carbon content in trees. With that  in mind, we have created models to detect trees in the wild and measure their diameters at breast height (1.3 m) from clouds of points. Usually, we obtain our clouds of points from either photogrammetry techniques, where cameras are employed, or direct 3D measurements, either with LiDAR or TLS sensors.  This document describes the requirements, installation and how to run our code to detect trees and measure their diameter at breast height. As input, we have a cloud of points.
 
 
 # Install Anaconda
