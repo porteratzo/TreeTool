@@ -70,11 +70,16 @@ python -m pip install pclpy
 ```
 * Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
 ```
-* conda install matplotlib
+conda install matplotlib
 ```
-* conda install pandas
-* conda install -c anaconda scipy
-
+* Install pandas, a python library for data manipulation and analysis 
+```
+conda install pandas
+```
+* Install scipy, a python library for scientific computing 
+```
+conda install -c anaconda scipy
+```
 
 Fill TLS benchmarking Point clouds can be obtained here
 https://laserscanning.fi/results-available-for-international-benchmarking-of-terrestrial-laser-scanning-methods/
