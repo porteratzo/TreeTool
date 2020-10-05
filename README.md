@@ -1,28 +1,22 @@
 # NistTreeDetector
+This document describes the requirements, installation and how to run our code to detect trees and measure their diameter at breast height.
 
-# Requirment Installation
 
-conda install jupyter 
+# Requirements for Installation
 
-conda config --add channels conda-forge
+Run the followind commands to make sure you have the required pieces of software
 
-pip install opencv-contrib-python
+* conda install jupyter 
+* conda config --add channels conda-forge
+* pip install opencv-contrib-python
+* conda install laspy
+* conda install -c conda-forge pdal python-pdal gdal
+* conda install -c sirokujira python-pcl
+* pip install pclpy
+* conda install matplotlib
+* conda install pandas
+* conda install -c anaconda scipy
 
-conda install laspy
-
-conda install -c conda-forge pdal python-pdal gdal
-
-conda install -c sirokujira python-pcl
-
-pip install pclpy
-
-conda install matplotlib
-
-conda install pandas
-
-conda install -c anaconda scipy
-
-# **I was here: mysterious pirate**
 
 Fill TLS benchmarking Point clouds can be obtained here
 https://laserscanning.fi/results-available-for-international-benchmarking-of-terrestrial-laser-scanning-methods/
