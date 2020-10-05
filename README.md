@@ -27,12 +27,9 @@ Before installing packages in the virtual environment, upgrade pip with the comm
 
 ```
 python -m pip install --upgrade pip 
-
 python -m pip list  # show packages installed within the virtual environment
+
 ```
-
-
-
 
 
 
@@ -40,11 +37,22 @@ python -m pip list  # show packages installed within the virtual environment
 
 # Requirements for Installation
 
-Run the following commands to make sure you have the required pieces of software
+Run the following commands to make sure you have the required pieces of software.
 
-* conda install jupyter 
-* conda config --add channels conda-forge
-* pip install opencv-contrib-python
+* Firstly, install jupyter notebook, a web-based programming environment for python, and other languages!
+```
+conda install jupyter
+```
+
+* Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
+```
+conda config --add channels conda-forge
+```
+* Now install OpenCV, a libray for image processing and computer vision
+```
+python -m pip install opencv-contrib-python
+```
+* 
 * conda install laspy
 * conda install -c conda-forge pdal python-pdal gdal
 * conda install -c sirokujira python-pcl
