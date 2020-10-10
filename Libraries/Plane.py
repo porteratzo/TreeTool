@@ -32,7 +32,7 @@ def toc():
     return time.perf_counter()-timestart
 
 def newnormalaxis(points,normal1,normal2,normal3):
-    matrix = np.vstack([normal1,normal2,normal3]
+    matrix = np.vstack([normal1,normal2,normal3])
     newpoints = np.matmul(matrix,points.T)
     return newpoints.T
 
