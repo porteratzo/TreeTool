@@ -1,6 +1,5 @@
 import sys
 import pclpy
-import cv2
 import numpy as np
 import pdal
 import segTree
@@ -9,7 +8,7 @@ import Utils
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
-import Corners
+import Utils
 
 class Tree_tool():
     def __init__(self, pointcloud = None, Ksearch = 0.08):
@@ -54,6 +53,9 @@ class Tree_tool():
         onlyhorizontalpoints = NonNANpoints[Fmask]
         onlyhorizontalnormals = NonNANnormals[Fmask]
         
+        self.nonFilterednormals = NonNANnormals
+        self.nonFilteredpoints = pclpy.pcl.PointCloud.PointXYZ(self.NongroundCloud.xyz[nanmask])
+        
         self.filteredpoints = pclpy.pcl.PointCloud.PointXYZ(onlyhorizontalpoints)
         self.filterednormals = onlyhorizontalnormals
     
@@ -65,7 +67,7 @@ class Tree_tool():
         bufferStems = self.cluster_list.copy()
         for n,p in enumerate(self.cluster_list):
             Centroid = np.mean(p, axis = 0)
-            vT,S = Corners.getPrincipalVectors(p-Centroid)
+            vT,S = Utils.getPrincipalVectors(p-Centroid)
             strieghtness = S[0]/(S[0]+S[1]+S[2])
 
             clustersDICT = {}

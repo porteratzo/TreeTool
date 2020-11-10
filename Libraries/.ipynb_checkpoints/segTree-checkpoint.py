@@ -1,13 +1,9 @@
 import sys
-sys.path.append('..')
 import pclpy
-import cv2
 import numpy as np
 import pdal
 import pandas as pd
-import pclpy
 import os
-
 
 
 def FloorRemove(points, scalar=0.2, slope=0.2, threshold=0.45, window=16.0, RGB=False):

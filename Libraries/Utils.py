@@ -44,3 +44,10 @@ def rotation_matrix_from_vectors(vec1, vec2):
     kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
     return rotation_matrix
+
+
+def getPrincipalVectors(A): #get pricipal vectors and values of a matrix centered around (0,0,0)
+    VT=np.linalg.eig(np.matmul(A.T,A))
+    sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
+    Values,Vectors = zip(*sort)
+    return Vectors,Values
