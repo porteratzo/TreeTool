@@ -48,10 +48,6 @@ conda install jupyter
 ```
 conda config --add channels conda-forge
 ```
-* Now install OpenCV, a libray for image processing and computer vision
-```
-python -m pip install opencv-contrib-python
-```
 * Install laspy, a library for reading, writing and modifying files in format LAS for LiDAR data.
 ```
 conda install laspy
@@ -60,13 +56,9 @@ conda install laspy
  ```
 conda install -c conda-forge pdal python-pdal gdal
 ```
- * Install python-pcl a python wrapper for the pointcloud library (PCL) developed by Sirokujira. It makes it easier to install dependencies for pclpy, which we install below.
+ * Install pclpy a python wrapper for the pointcloud library (PCL) developed by davidcaron. It makes it easier to install dependencies for pclpy.
 ```
- conda install -c sirokujira python-pcl
-```
-* Install pclpy, another python wrapper for the pointcloud library (PCL). 
-```
-python -m pip install pclpy
+conda install -c conda-forge -c davidcaron pclpy
 ```
 * Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
 ```
