@@ -1,12 +1,9 @@
 import numpy as np
+import pclpy
+from matplotlib import cm
+import open3d
+import segTree
 
-def similarize(vector,target):
-    Nvector = np.array(vector)
-    assert len(Nvector) == 3,'vector must be dim 3'
-    angle = angle_b_vectors(Nvector,target)
-    if angle > np.pi/2:
-        Nvector = -Nvector
-    return Nvector
 
 def angle_b_vectors(a,b):
     value = np.sum(np.multiply(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))
@@ -51,3 +48,70 @@ def getPrincipalVectors(A): #get pricipal vectors and values of a matrix centere
     sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
     Values,Vectors = zip(*sort)
     return Vectors,Values
+
+
+def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1, pointsize = 0.1):
+    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid pointcloud'
+    
+    if (type(nppoints) is not list) & (type(nppoints) is not tuple):
+        nppoints = [nppoints]
+    try:
+        vis = open3d.visualization.Visualizer()
+        vis.create_window()
+        opt = vis.get_render_option()
+        opt.background_color = np.asarray([0, 0, 0])
+        opt.point_size = pointsize
+
+        if len(nppoints) > 1:
+            for n,i in enumerate(nppoints):
+                workpoints = i
+                if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+                    workpoints = workpoints.xyz
+
+                if reduce_for_Vis:
+                    workpoints = segTree.voxelize(workpoints,voxelsize)
+
+                points = convertcloud(workpoints)
+                colNORM = n/len(nppoints)/2 + n%2*.5
+                if type(color) == np.ndarray:
+                    pass
+                elif color == 'jet':
+                    color=cm.jet(colNORM)[:3]
+                else:
+                    color=cm.Set1(colNORM)[:3]
+                points.colors = open3d.utility.Vector3dVector(np.ones_like(workpoints)*color)
+                #points.colors = open3d.utility.Vector3dVector(color)
+                vis.add_geometry(points)
+        else:
+            workpoints = nppoints[0]
+            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+                workpoints = workpoints.xyz
+                
+            if reduce_for_Vis:
+                workpoints = segTree.voxelize(workpoints,voxelsize)
+            points = convertcloud(workpoints)
+            vis.add_geometry(points)
+        vis.run()
+        vis.destroy_window()
+        
+    except Exception as e:
+        print(type(e))
+        print(e.args)
+        print(e)
+        vis.destroy_window()
+        
+        
+def convertcloud(points):
+    pcd = open3d.geometry.PointCloud()
+    pcd.points = open3d.utility.Vector3dVector(points)
+    #open3d.write_point_cloud(Path+'sync.ply', pcd)
+    #pcd_load = open3d.read_point_cloud(Path+'sync.ply')
+    return pcd
+
+def similarize(vector,target):
+    Nvector = np.array(vector)
+    assert len(Nvector) == 3,'vector must be dim 3'
+    angle = angle_b_vectors(Nvector,target)
+    if angle > np.pi/2:
+        Nvector = -Nvector
+    return Nvector

@@ -3,7 +3,6 @@ import pclpy
 import numpy as np
 import pdal
 import segTree
-import Visualization
 import Utils
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
@@ -38,7 +37,7 @@ class Tree_tool():
         self.Ksearch = Ksearch  
         
 
-    def Step_2_Normal_Filtering(self, verticalityThresh = 0.06, NonNANcurvatureThresh = 0.1):
+    def Step_2_Normal_Filtering(self, verticalityThresh = 0.08, NonNANcurvatureThresh = 0.12):
         self.normals = segTree.ExtractNormals(self.NongroundCloud.xyz, self.Ksearch)
 
         nanmask = np.bitwise_not(np.isnan(self.normals.normals[:,0]))
