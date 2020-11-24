@@ -44,6 +44,11 @@ Run the following commands to make sure you have the required pieces of software
 conda install jupyter
 ```
 
+* install Open3d, library for 3d point processing
+```
+pip install open3d
+```
+
 * Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
 ```
 conda config --add channels conda-forge
