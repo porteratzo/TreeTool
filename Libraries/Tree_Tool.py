@@ -145,3 +145,15 @@ class Tree_tool():
         print('Step_6_Get_Cylinder_Tree_Models')
         self.Step_6_Get_Cylinder_Tree_Models(searchRadius)
         print('Done')
+        
+    def save_results(self, savelocation = 'myresults.csv'):
+        Tree_Model_Info = [i['model'] for i in self.finalstems]
+
+        data = {'X':[],'Y':[],'Z':[],'DBH':[]}
+        for i in Tree_Model_Info:
+            data['X'].append(i[0])
+            data['Y'].append(i[1])
+            data['Z'].append(i[2])
+            data['DBH'].append(i[6]*2)
+
+        pd.DataFrame.from_dict(data).to_csv(savelocation)
