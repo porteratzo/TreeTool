@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
 import Utils
+from ellipse import LsqEllipse
 
 class Tree_tool():
     def __init__(self, pointcloud = None, Ksearch = 0.08):
@@ -107,6 +108,7 @@ class Tree_tool():
         lowStems = [i for i in StemsWithGround if np.min(i[0],axis=0)[2] < (lowstems_Height + i[1][2])]
         cutstems = [[i[0][i[0][:,2]<(cutstems_Height + i[1][2])],i[1]] for i in lowStems]
         
+        
         self.cutstems = cutstems
         self.lowstems = [i[0] for i in cutstems]
         
@@ -117,7 +119,7 @@ class Tree_tool():
         for p in self.cutstems:
             segpoints = p[0]
             indices, model = segTree.segment_normals(segpoints, searchRadius = searchRadius, model=pclpy.pcl.sample_consensus.SACMODEL_CYLINDER, method=pclpy.pcl.sample_consensus.SAC_RANSAC, normalweight=0.01, miter=10000, distance=0.08, rlim=[0,0.4])
-            if len(indices)>0:
+            if len(indices)>10:
                 if abs(np.dot(model[3:6],[0,0,1])/np.linalg.norm(model[3:6])) > 0.5:
                     newmodel = np.array(model)
                     Z = 1.3 + p[1][2]
@@ -130,6 +132,24 @@ class Tree_tool():
                     
         self.finalstems = finalstems
         self.stemcyls = stemcyls
+        
+    def Step_7_Ellipse_fit( self):
+        for i in self.finalstems:
+            if len(i['tree']) > 5:
+                R = Utils.rotation_matrix_from_vectors(i['model'][3:6],[0,0,1])
+                centeredtree = i['tree'] - i['model'][0:3]
+                correctedcyl = (R @ centeredtree.T).T
+                reg = LsqEllipse().fit(correctedcyl[:,0:2])
+                center, a, b, phi = reg.as_parameters()
+                Elipse_diameter = (3 * (a + b) - np.sqrt((3*a+b)*(a+3*b)))
+                cylinder_diameter = i['model'][6]*2
+                i['cylinder_diameter'] = cylinder_diameter
+                i['Elipse_diameter'] = Elipse_diameter
+                i['final_diameter'] = max(Elipse_diameter,cylinder_diameter)
+            else:
+                i['cylinder_diameter'] = None
+                i['Elipse_diameter'] = None
+                i['final_diameter'] = None
         
     def Full_Process(self, verticalityThresh = 0.06, NonNANcurvatureThresh = 0.1, tol=0.1, minc=40, maxc=6000000, max_angle = 0.4, lowstems_Height = 5, cutstems_Height = 5, searchRadius = 0.1):
         print('Step_1_Remove_Floor')
@@ -144,16 +164,19 @@ class Tree_tool():
         self.Step_5_Get_Ground_Level_Trees(lowstems_Height, cutstems_Height)
         print('Step_6_Get_Cylinder_Tree_Models')
         self.Step_6_Get_Cylinder_Tree_Models(searchRadius)
+        print('Step_7_Ellipse_fit')
+        self.Step_7_Ellipse_fit()
         print('Done')
         
     def save_results(self, savelocation = 'myresults.csv'):
         Tree_Model_Info = [i['model'] for i in self.finalstems]
+        Tree_diameter_Info = [i['final_diameter'] for i in self.finalstems]
 
         data = {'X':[],'Y':[],'Z':[],'DBH':[]}
-        for i in Tree_Model_Info:
+        for i,j in zip(Tree_Model_Info, Tree_diameter_Info):
             data['X'].append(i[0])
             data['Y'].append(i[1])
             data['Z'].append(i[2])
-            data['DBH'].append(i[6]*2)
+            data['DBH'].append(j)
 
         pd.DataFrame.from_dict(data).to_csv(savelocation)

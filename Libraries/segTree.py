@@ -4,10 +4,14 @@ import numpy as np
 import pdal
 import pandas as pd
 import os
+import Utils
+import open3d
 
 
 def FloorRemove(points, scalar=0.2, slope=0.2, threshold=0.45, window=16.0, RGB=False):
-    pclpy.pcl.io.savePLYFile('LIDARRF.ply',points, binary_mode = True)
+    #pclpy.pcl.io.savePLYFile('LIDARRF.ply',points, binary_mode = True)
+    plycloud = Utils.convertcloud(points.xyz)
+    open3d.io.write_point_cloud('LIDARRF.ply',plycloud)
     json = """
     [
         "LIDARRF.ply",
