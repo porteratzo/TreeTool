@@ -100,6 +100,10 @@ conda install pandas
 ```
 conda install -c anaconda scipy
 ```
+* Instalar lsq-ellipse una pequeña herramienta para ajustar puntos a elipses
+```
+pip install lsq-ellipse
+```
 
 Finally you can download the point clouds for TLS tests at this address.
 https://drive.google.com/drive/folders/15aW3Npr9lOdxGrswWrsN9wN0g2Q9pBGo?usp=sharing
