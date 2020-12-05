@@ -3,6 +3,10 @@
 
 The main objective of our work is to estimate the carbon content of trees in a forest plot. With this in mind, we have implemented the algorithm of Liang et al [1] to detect trees in the wild and measure their diameters at breast height (1.3 m) from point clouds. We usually get our point clouds from photogrammetry techniques, where cameras or direct 3D measurements are used, either with LiDAR or TLS sensors. This document describes the requirements, installation, and how to run our code to detect trees and measure their diameter at chest height.
 
+# Software description
+
+TreeTool is made up of some sample notebooks and three libraries segTree, TreeTool and Utils. segTree contains several useful functions that allow us to quickly perform operations on point clouds. TreeTool contains our main class. When called, it performs the complete process of tree detection and extraction of diameters at chest height. Finally, Utils contains special functions required by the internal processes and functions for displaying point clouds.
+
 # Installation
 
 # Hardware requirements
