@@ -1,6 +1,42 @@
 # TreeTool
 
-An important goal for our team is to assess the carbon content in trees. With that  in mind, we have created models to detect trees in the wild and measure their diameters at breast height (1.3 m) from clouds of points. Usually, we obtain our clouds of points from either photogrammetry techniques, where cameras are employed, or direct 3D measurements, either with LiDAR or TLS sensors.  This document describes the requirements, installation and how to run our code to detect trees and measure their diameter at breast height. As input, we have a cloud of points.
+
+The main objective of our work is to estimate the carbon content of trees in a forest plot. With this in mind, we have implemented the algorithm of Liang et al [1] to detect trees in the wild and measure their diameters at breast height (1.3 m) from point clouds. We usually get our point clouds from photogrammetry techniques, where cameras or direct 3D measurements are used, either with LiDAR or TLS sensors. This document describes the requirements, installation, and how to run our code to detect trees and measure their diameter at chest height.
+
+# Software description
+
+TreeTool is made up of some sample notebooks and three libraries segTree, TreeTool and Utils. segTree contains several useful functions that allow us to quickly perform operations on point clouds. TreeTool contains our main class. When called, it performs the complete process of tree detection and extraction of diameters at chest height. Finally, Utils contains special functions required by the internal processes and functions for displaying point clouds.
+
+# Installation
+
+# Hardware requirements
+The requirements will depend mainly on the size of the point clouds that will be worked with, since a cloud can vary between hundreds of thousands to hundreds of millions of points. The recommended requirements are designed to process clouds with around ten million points with good fluency.
+Minimum technical requirements
+• Windows 10
+Processor: 1 GHz or more
+• RAM: 8 GB
+• Graphics: DirectX9 or newer
+
+Recommended technical requirements
+• Windows 10
+• Processor: 2 GHz or more, 2 or more cores
+• RAM: 16 GB
+• Graphics: Dedicated video card with 4GB of VRAM
+
+# Software requirements
+Anaconda
+Python 3.6
+packages
+• pip
+• open3d
+• laspy
+• pdal
+• python-pdal
+• gdal
+• pclpy
+• matplotlib
+• pandas
+• scipy
 
 
 # Install Anaconda
@@ -14,25 +50,13 @@ This may be useful to isolate the package installation to your current system se
 Create a virtual environment, called venv, under the current directory and use python as your interpreter
 
 ```
-python -m venv --system-site-packages .\venv
+conda create --name venv python = 3.6
 ```
 
 To activate the virtual environment run
 ```
-.\venv\Scripts\activate
+conda activate venv
 ```
-
-Before installing packages in the virtual environment, upgrade pip with the command that run pip as a library module of python
-
-```
-python -m pip install --upgrade pip 
-python -m pip list  # show packages installed within the virtual environment
-
-```
-
-
-
-
 
 # Requirements for Installation
 
@@ -45,7 +69,7 @@ conda install jupyter
 
 * install Open3d, library for 3d point processing
 ```
-pip install open3d
+conda install -c open3d-admin open3d
 ```
 
 * Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
@@ -76,10 +100,16 @@ conda install pandas
 ```
 conda install -c anaconda scipy
 ```
+* Instalar lsq-ellipse una pequeña herramienta para ajustar puntos a elipses
+```
+pip install lsq-ellipse
+```
 
-Fill TLS benchmarking Point clouds can be obtained here
-https://laserscanning.fi/results-available-for-international-benchmarking-of-terrestrial-laser-scanning-methods/
-
-Link to Downsampled NIST and TLS benchmarking point clouds
+Finally you can download the point clouds for TLS tests at this address.
 https://drive.google.com/drive/folders/15aW3Npr9lOdxGrswWrsN9wN0g2Q9pBGo?usp=sharing
 
+The original databases and original publication can be found on this page.
+https://laserscanning.fi/results-available-for-international-benchmarking-of-terrestrial-laser-scanning-methods/
+
+
+[1] Liang, X., Litkey, P., Hyyppa, J., Kaartinen, H., Vastaranta, M., & Holopainen, M. (2011). Automatic stem mapping using single-scan terrestrial laser scanning. IEEE Transactions on Geoscience and Remote Sensing, 50 (2), 661-670.
