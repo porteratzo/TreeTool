@@ -64,10 +64,11 @@ Run the following commands to make sure you have the required pieces of software
 
 * Firstly, install jupyter notebook, a web-based programming environment for python, and other languages!
 
-conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pandas
-pip install open3d lsq-ellipse jupyter
+
 ```
 conda install jupyter
+conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pandas
+pip install open3d lsq-ellipse jupyter
 ```
 
 * install Open3d, library for 3d point processing
