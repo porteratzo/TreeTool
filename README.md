@@ -50,7 +50,7 @@ This may be useful to isolate the package installation to your current system se
 Create a virtual environment, called venv, under the current directory and use python as your interpreter
 
 ```
-conda create --name venv python = 3.6
+conda create --name venv python = 3.8
 ```
 
 To activate the virtual environment run
@@ -63,6 +63,9 @@ conda activate venv
 Run the following commands to make sure you have the required pieces of software.
 
 * Firstly, install jupyter notebook, a web-based programming environment for python, and other languages!
+
+conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pandas
+pip install open3d lsq-ellipse jupyter
 ```
 conda install jupyter
 ```
