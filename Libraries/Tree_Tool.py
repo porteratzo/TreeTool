@@ -1,8 +1,8 @@
 import pclpy
 import numpy as np
-import segTree
 import pandas as pd
-import Utils
+import Libraries.segTree as segTree
+import Libraries.Utils as Utils
 from ellipse import LsqEllipse
 
 class Tree_tool():
@@ -163,7 +163,7 @@ class Tree_tool():
         self.Step_7_Ellipse_fit()
         print('Done')
         
-    def save_results(self, savelocation = 'myresults.csv'):
+    def save_results(self, savelocation = 'results/myresults.csv'):
         Tree_Model_Info = [i['model'] for i in self.finalstems]
         Tree_diameter_Info = [i['final_diameter'] for i in self.finalstems]
 

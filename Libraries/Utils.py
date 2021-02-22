@@ -3,7 +3,7 @@ import pclpy
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d
-import segTree
+import Libraries.segTree as segTree
 
 def rotation_matrix_from_vectors(vec1, vec2):
     if all(np.abs(vec1)==np.abs(vec2)):
