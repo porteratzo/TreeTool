@@ -1,6 +1,7 @@
 import numpy as np
 import pclpy
 from matplotlib import cm
+import matplotlib.pyplot as plt
 import open3d
 import segTree
 
@@ -109,6 +110,58 @@ def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1
         print(e.args)
         print(e)
         vis.destroy_window()
+        
+def plt3dpaint(nppoints, color = 'jet', reduce_for_Vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
+    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid pointcloud'
+    cloudlist = []
+    cloudcolors = []
+    if (type(nppoints) is not list) & (type(nppoints) is not tuple):
+        nppoints = [nppoints]
+        
+    if len(nppoints) > 1:
+        for n,i in enumerate(nppoints):
+            workpoints = i
+            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+                workpoints = workpoints.xyz
+
+            if reduce_for_Vis:
+                workpoints = segTree.voxelize(workpoints,voxelsize)
+
+            
+            cloudmin = np.min(workpoints[:,2])
+            cloudmax = np.max(workpoints[:,2])
+    
+            points = workpoints
+            colNORM = n/len(nppoints)/2 + n%2*.5
+            if type(color) == np.ndarray:
+                pass
+            elif color == 'jet':
+                color=cm.jet(colNORM)[:3]
+            else:
+                color=cm.Set1(colNORM)[:3]
+            cloudcolors.append(np.ones_like(workpoints)*color + 0.4*(np.ones_like(workpoints) * ((workpoints[:,2] - cloudmin)/(cloudmax - cloudmin)).reshape(-1,1)-0.5) )
+            cloudlist.append(points)
+    else:
+        workpoints = nppoints[0]
+        if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+            workpoints = workpoints.xyz
+
+        if reduce_for_Vis:
+            workpoints = segTree.voxelize(workpoints,voxelsize)
+        cloudcolors.append(workpoints[:,2])
+        cloudlist.append(workpoints)
+
+    PLTPC = np.concatenate(cloudlist)
+    PLTCL = np.concatenate(cloudcolors)
+    if len(nppoints) > 1:
+        PLTCL = np.minimum(PLTCL,np.ones_like(PLTCL))
+        PLTCL = np.maximum(PLTCL,np.zeros_like(PLTCL))
+    fig = plt.figure(figsize=(30,16) )
+    for i in range(subplots):
+        ax = fig.add_subplot(1, subplots, i+1, projection='3d')
+        ax.view_init(30, 360*i/subplots)
+        ax.scatter3D(PLTPC[:,0], PLTPC[:,1], PLTPC[:,2], c=PLTCL, s=pointsize)
+
         
         
 def convertcloud(points):
