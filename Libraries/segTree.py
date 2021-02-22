@@ -1,46 +1,27 @@
-import sys
 import pclpy
 import numpy as np
-import pdal
-import pandas as pd
-import os
-import Utils
-import open3d
 
+def FloorRemove(points, setMaxWindowSize = 20, setSlope = 1.0, setInitialDistance = 0.5, setMaxDistance = 3.0):
+    PointCloud = points
+    ind = pclpy.pcl.vectors.Int()
+    pmf = pclpy.pcl.segmentation.ApproximateProgressiveMorphologicalFilter.PointXYZ()
+    pmf.setInputCloud(PointCloud)
+    pmf.setMaxWindowSize(setMaxWindowSize)
+    pmf.setSlope(setSlope)
+    pmf.setInitialDistance(setInitialDistance)
+    pmf.setMaxDistance(setMaxDistance)
+    pmf.extract(ind)
 
-def FloorRemove(points, scalar=0.2, slope=0.2, threshold=0.45, window=16.0, RGB=False):
-    #pclpy.pcl.io.savePLYFile('LIDARRF.ply',points, binary_mode = True)
-    plycloud = Utils.convertcloud(points.xyz)
-    open3d.io.write_point_cloud('LIDARRF.ply',plycloud)
-    json = """
-    [
-        "LIDARRF.ply",
-        {
-            "type":"filters.smrf",
-            "scalar":1.25,
-            "slope":0.15,
-            "threshold":0.5,
-            "window":18.0
-        }
-    ]
-    """
-    pipeline = pdal.Pipeline(json)
-    pipeline.validate()
-    pipeline.execute()
-    arrays = pipeline.arrays
-    points1 = arrays[0][arrays[0]['Classification']==1]
-    points2 = arrays[0][arrays[0]['Classification']==2]
+    ext = pclpy.pcl.filters.ExtractIndices.PointXYZ()
+    ground = pclpy.pcl.PointCloud.PointXYZ()
+    Nogroundpoints = pclpy.pcl.PointCloud.PointXYZ()
+    ext.setInputCloud(PointCloud)
+    ext.setIndices(ind)
+    ext.filter(ground)
+    ext.setNegative(True)
+    ext.filter(Nogroundpoints)
 
-    Nogroundpoints = np.array(points1[['X','Y','Z']].tolist())
-    ground = np.array(points2[['X','Y','Z']].tolist())
-    os.remove('LIDARRF.ply')
-    
-    if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
-        if len(Nogroundpoints) > 0:
-            Nogroundpoints = pclpy.pcl.PointCloud.PointXYZRGB(np.array(points1[['X','Y','Z']].tolist()),np.array(points1[['Red','Green','Blue']].tolist()))
-        if len(ground) > 0:
-            ground = pclpy.pcl.PointCloud.PointXYZRGB(np.array(points2[['X','Y','Z']].tolist()),np.array(points2[['Red','Green','Blue']].tolist()))
-    return Nogroundpoints,ground
+    return Nogroundpoints.xyz, ground.xyz
 
 def RadiusOutlierRemoval(points , MinN=6, Radius=0.4, Organized=True):
     ROR = pclpy.pcl.filters.RadiusOutlierRemoval.PointXYZ()

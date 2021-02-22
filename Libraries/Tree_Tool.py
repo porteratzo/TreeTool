@@ -1,12 +1,7 @@
-import sys
 import pclpy
 import numpy as np
-import pdal
 import segTree
-import Utils
 import pandas as pd
-from scipy.optimize import linear_sum_assignment
-import matplotlib.pyplot as plt
 import Utils
 from ellipse import LsqEllipse
 
