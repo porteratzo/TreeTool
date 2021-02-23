@@ -62,7 +62,7 @@ def getPrincipalVectors(A): #get pricipal vectors and values of a matrix centere
 
 
 def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1, pointsize = 0.1):
-    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid pointcloud'
+    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
     
     if (type(nppoints) is not list) & (type(nppoints) is not tuple):
         nppoints = [nppoints]
@@ -112,7 +112,7 @@ def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1
         vis.destroy_window()
         
 def plt3dpaint(nppoints, color = 'jet', reduce_for_Vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
-    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid pointcloud'
+    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
     cloudlist = []
     cloudcolors = []
     if (type(nppoints) is not list) & (type(nppoints) is not tuple):
