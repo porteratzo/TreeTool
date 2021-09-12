@@ -34,34 +34,34 @@ def RadiusOutlierRemoval(points , MinN=6, Radius=0.4, Organized=True):
     ROR.filter(FilteredROR)
     return FilteredROR.xyz
 
-def ExtractNormals(points, Ksearch = 0.1):
+def ExtractNormals(points, search_radius = 0.1):
     cloud = pclpy.pcl.PointCloud.PointXYZ(points)
     segcloudNor = pclpy.pcl.features.NormalEstimationOMP.PointXYZ_Normal()
     tree = pclpy.pcl.search.KdTree.PointXYZ()
     segcloudNor.setInputCloud(cloud)
     segcloudNor.setSearchMethod(tree)
-    segcloudNor.setRadiusSearch(Ksearch)
+    segcloudNor.setRadiusSearch(search_radius)
     normals = pclpy.pcl.PointCloud.Normal()
     segcloudNor.compute(normals)
     return normals
 
 
-def EucladeanClusterExtract(points, tol=2, minc=20, maxc=25000):
+def euclidean_cluster_extract(points, tolerance=2, min_cluster_size=20, max_cluster_size=25000):
     filtered_points = pclpy.pcl.segmentation.EuclideanClusterExtraction.PointXYZ()
-    kdtree = pclpy.pcl.search.KdTree.PointXYZ()
-    pointstocluster = pclpy.pcl.PointCloud.PointXYZ(points)
+    kd_tree = pclpy.pcl.search.KdTree.PointXYZ()
+    points_to_cluster = pclpy.pcl.PointCloud.PointXYZ(points)
     
-    kdtree.setInputCloud(pointstocluster)
-    filtered_points.setInputCloud(pointstocluster)
-    filtered_points.setClusterTolerance(tol)
-    filtered_points.setMinClusterSize(minc)
-    filtered_points.setMaxClusterSize(maxc)
-    filtered_points.setSearchMethod(kdtree)
+    kd_tree.setInputCloud(points_to_cluster)
+    filtered_points.setInputCloud(points_to_cluster)
+    filtered_points.setClusterTolerance(tolerance)
+    filtered_points.setMinClusterSize(min_cluster_size)
+    filtered_points.setMaxClusterSize(max_cluster_size)
+    filtered_points.setSearchMethod(kd_tree)
 
-    pI = pclpy.pcl.vectors.PointIndices()
-    filtered_points.extract(pI)
+    point_indexes = pclpy.pcl.vectors.PointIndices()
+    filtered_points.extract(point_indexes)
 
-    cluster_list = [pointstocluster.xyz[i2.indices] for i2 in pI]
+    cluster_list = [points_to_cluster.xyz[i2.indices] for i2 in point_indexes]
     return cluster_list
 
 def RegionGrowing(Points, Ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30.0, curvature=1.0):

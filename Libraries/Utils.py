@@ -38,7 +38,7 @@ def makecylinder(model=[0,0,0,1,0,0,1],length = 1,dense=10):
     rotatedcyl = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
     return rotatedcyl   
 
-def DistPoint2Line(point,linepoint1, linepoint2=np.array([0,0,0])): #get minimum destance from a point to a line
+def DistPoint2Line(point,linepoint1, linepoint2=np.array([0,0,0])): #get minimum distance from a point to a line
     return np.linalg.norm(np.cross((point-linepoint2),(point-linepoint1)))/np.linalg.norm(linepoint1 - linepoint2)
 
 
@@ -171,7 +171,7 @@ def convertcloud(points):
     #pcd_load = open3d.read_point_cloud(Path+'sync.ply')
     return pcd
 
-def similarize(vector,target):
+def similarize(vector, target):
     Nvector = np.array(vector)
     assert len(Nvector) == 3,'vector must be dim 3'
     angle = angle_b_vectors(Nvector,target)

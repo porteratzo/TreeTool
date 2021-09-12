@@ -104,7 +104,7 @@ conda install pandas
 ```
 conda install -c anaconda scipy
 ```
-* Instalar lsq-ellipse una pequeña herramienta para ajustar puntos a elipses
+* Install lsq-ellipse a tool for elipse fitting
 ```
 pip install lsq-ellipse
 ```

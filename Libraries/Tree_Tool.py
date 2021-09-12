@@ -7,98 +7,185 @@ from ellipse import LsqEllipse
 
 
 class TreeTool:
-    def __init__(self, point_cloud=None, ksearch=0.08):
+    """
+    Our main class that holds all necessary methods to process a raw point into a list of all tree stem locations and DBHs
+    """
+    def __init__(self, point_cloud=None):
+        """
+        Parameters
+        ----------
+        point_cloud : np.narray | pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZRGB
+            The 3d point cloud of the forest that TreeTool will process, if it's a numpy array it should be shape (n,3)
+        """
         if point_cloud is not None:
             assert (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZRGB) or (
                     type(point_cloud) == pclpy.pcl.PointCloud.PointXYZ) or (
                            type(point_cloud) == np.ndarray), 'Not valid point_cloud'
             if type(point_cloud) == np.ndarray:
-                self.Point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
+                self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
-                self.Point_cloud = point_cloud
-            self.Ksearch = ksearch
+                self.point_cloud = point_cloud
             self.non_ground_cloud = None
-            self.GroundCloud = None
+            self.ground_cloud = None
 
-    def set_point_cloud(self, pointcloud):
-        if pointcloud is not None:
-            assert (type(pointcloud) == pclpy.pcl.PointCloud.PointXYZRGB) or (
-                        type(pointcloud) == pclpy.pcl.PointCloud.PointXYZ) or (
-                               type(pointcloud) == np.ndarray), 'Not valid point_cloud'
-            if type(pointcloud) == np.ndarray:
-                self.Point_cloud = pclpy.pcl.PointCloud.PointXYZ(pointcloud)
+    def set_point_cloud(self, point_cloud):
+        """
+        Resets the point cloud that TreeTool will process
+
+        Args:
+            point_cloud : np.narray | pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZRGB
+                The 3d point cloud of the forest that TreeTool will process, if it's a numpy array it should be shape (n,3)
+
+        Returns:
+            None
+        """
+        if point_cloud is not None:
+            assert (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZRGB) or (
+                        type(point_cloud) == pclpy.pcl.PointCloud.PointXYZ) or (
+                               type(point_cloud) == np.ndarray), 'Not valid point_cloud'
+            if type(point_cloud) == np.ndarray:
+                self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
-                self.Point_cloud = pointcloud
+                self.point_cloud = point_cloud
 
     def step_1_remove_floor(self):
-        no_ground_points, ground = segTree.FloorRemove(self.Point_cloud)
+        """
+        Applies ApproximateProgressiveMorphologicalFilter to point_cloud to separate the it's points into non_ground and ground points and assigns them to the non_ground_cloud and ground_cloud attributes
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        no_ground_points, ground = segTree.FloorRemove(self.point_cloud)
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(no_ground_points)
-        self.GroundCloud = pclpy.pcl.PointCloud.PointXYZ(ground)
+        self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
-    def set_Ksearch(self, Ksearch):
-        self.Ksearch = Ksearch
+    def step_2_normal_filtering(self, search_radius=0.08, verticality_threshold=0.08, curvature_threshold=0.12):
+        """
+        Filters non_ground_cloud by approximating its normals and removing points with a high curvature and a non near horizontal normal
+        the points that remained are assigned to 
 
-    def Step_2_Normal_Filtering(self, verticalityThresh=0.08, NonNANcurvatureThresh=0.12):
-        self.normals = segTree.ExtractNormals(self.non_ground_cloud.xyz, self.Ksearch)
+        Args:
+            search_radius : float
+                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
 
-        nanmask = np.bitwise_not(np.isnan(self.normals.normals[:, 0]))
-        NonNANpoints = self.non_ground_cloud.xyz[nanmask]
-        NonNANnormals = self.normals.normals[nanmask]
-        NonNANcurvature = self.normals.curvature[nanmask]
-        verticality = np.dot(NonNANnormals, [[0], [0], [1]])
-        mask = (verticality < verticalityThresh) & (-verticalityThresh < verticality)  # 0.1
-        maskC = (NonNANcurvature < NonNANcurvatureThresh)  ## 0.12
-        Fmask = mask.ravel() & maskC.ravel()
+            verticality_threshold: float
+                Threshold in radians for filtering the verticality of each point, we determine obtaining the dot product of each points normal by a vertical vector [0,0,1]
 
-        onlyhorizontalpoints = NonNANpoints[Fmask]
-        onlyhorizontalnormals = NonNANnormals[Fmask]
+            curvature_threshold: float
+                Threshold [0-1] for filtering the curvature of each point, the curvature is given by lambda_0/(lambda_0 + lambda_1 + lambda_2) where lambda_j is the
+                j-th eigenvalue of the covariance matrix of radius of points around each query point and lambda_0 < lambda_1 < lambda_2
 
-        self.nonFilterednormals = NonNANnormals
-        self.nonFilteredpoints = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz[nanmask])
+        Returns:
+            None
+        """
+        # get point normals
+        self.non_ground_normals = segTree.ExtractNormals(self.non_ground_cloud.xyz, search_radius)
 
-        self.filteredpoints = pclpy.pcl.PointCloud.PointXYZ(onlyhorizontalpoints)
-        self.filterednormals = onlyhorizontalnormals
+        # remove Nan points
+        non_nan_mask = np.bitwise_not(np.isnan(self.non_ground_normals.normals[:, 0]))
+        self.non_ground_cloud.xyz = self.non_ground_cloud.xyz[non_nan_mask]
+        self.non_ground_normals.normals = self.non_ground_normals.normals[non_nan_mask]
+        self.non_ground_normals.curvature = self.non_ground_normals.curvature[non_nan_mask]
 
-    def Step_3_Eucladean_Clustering(self, tol=0.1, minc=40, maxc=6000000):
-        self.cluster_list = segTree.EucladeanClusterExtract(self.filteredpoints.xyz, tol=tol, minc=minc, maxc=maxc)
+        # get mask by filtering verticality and curvature
+        verticality = np.dot(self.non_ground_normals.normals, [[0], [0], [1]])
+        verticality_mask = (verticality < verticality_threshold) & (-verticality_threshold < verticality)
+        curvature_mask = (self.non_ground_normals.curvature < curvature_threshold)
+        verticality_curvature_mask = verticality_mask.ravel() & curvature_mask.ravel()
 
-    def Step_4_Group_Stems(self, max_angle=0.4):
-        GroupStems = []
-        bufferStems = self.cluster_list.copy()
+        # set filtered and non filtered points
+        self.non_filtered_normals = self.non_ground_normals.normals
+        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz)
+        self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz[verticality_curvature_mask])
+        self.filtered_normals = self.non_ground_normals.normals[verticality_curvature_mask]
+
+    def step_3_euclidean_clustering(self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000):
+        """
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+            tolerance : float
+                Maximum distance a point can be from a cluster for that point to be included in the cluster.
+
+            min_cluster_size: int
+                Minimum number of points a cluster must have to not be discarded
+
+            max_cluster_size: int
+                Maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+        """
+        self.cluster_list = segTree.euclidean_cluster_extract(self.filtered_points.xyz, tolerance=tolerance, min_cluster_size=min_cluster_size, max_cluster_size=max_cluster_size)
+
+    def step_4_group_stems(self, max_distance=0.4):
+        """
+        For each cluster in attribute cluster_list, test if its centroid is near the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+        and if so, join the two clusters
+
+        Args:
+            max_distance : float
+                maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+
+        Returns:
+            None
+        """
+        # Get required info from clusters
+        stem_groups = []
         for n, p in enumerate(self.cluster_list):
             Centroid = np.mean(p, axis=0)
             vT, S = Utils.getPrincipalVectors(p - Centroid)
-            strieghtness = S[0] / (S[0] + S[1] + S[2])
+            straightness = S[0] / (S[0] + S[1] + S[2])
 
             clustersDICT = {}
             clustersDICT['cloud'] = p
-            clustersDICT['straightness'] = strieghtness
+            clustersDICT['straightness'] = straightness
             clustersDICT['center'] = Centroid
             clustersDICT['direction'] = vT
-            GroupStems.append(clustersDICT)
+            stem_groups.append(clustersDICT)
 
-        bufferStems = [i['cloud'] for i in GroupStems]
-        for treenumber1 in reversed(range(0, len(bufferStems))):
+        # For each cluster, test if its centroid is near the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+        # if so, join the two clusters
+        temp_stems = [i['cloud'] for i in stem_groups]
+        for treenumber1 in reversed(range(0, len(temp_stems))):
             for treenumber2 in reversed(range(0, treenumber1 - 1)):
-                center1 = GroupStems[treenumber1]['center']
-                center2 = GroupStems[treenumber2]['center']
-                angle1 = GroupStems[treenumber1]['direction'][0]
-                angle2 = GroupStems[treenumber2]['direction'][0]
-                dist1 = Utils.DistPoint2Line(center2, angle1 + center1, center1)
-                dist2 = Utils.DistPoint2Line(center1, angle2 + center2, center2)
-                if (dist1 < max_angle) | (dist2 < max_angle):
-                    bufferStems[treenumber2] = np.vstack([bufferStems[treenumber2], bufferStems.pop(treenumber1)])
+                center1 = stem_groups[treenumber1]['center']
+                center2 = stem_groups[treenumber2]['center']
+                vector1 = stem_groups[treenumber1]['direction'][0]
+                vector2 = stem_groups[treenumber2]['direction'][0]
+                dist1 = Utils.DistPoint2Line(center2, vector1 + center1, center1)
+                dist2 = Utils.DistPoint2Line(center1, vector2 + center2, center2)
+                if (dist1 < max_distance) | (dist2 < max_distance):
+                    temp_stems[treenumber2] = np.vstack([temp_stems[treenumber2], temp_stems.pop(treenumber1)])
                     break
 
-        self.complete_Stems = bufferStems
+        self.complete_Stems = temp_stems
 
-    def Step_5_Get_Ground_Level_Trees(self, lowstems_Height=5, cutstems_Height=5):
-        pointpart = self.GroundCloud.xyz
+    def step_5_get_ground_level_trees(self, lowstems_height=5, cutstems_height=5):
+        """
+        Filters stems to only keep those near the ground and crops them up to a certain height
 
+        Args:
+            lowstems_height: int
+                minimum number of points a cluster must have to not be discarded
+
+            cutstems_height: int
+                maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+        """
+        # Generate a bivariate quadratic equation to model the ground
+        ground_points = self.ground_cloud.xyz
         A = np.c_[
-            np.ones(pointpart.shape[0]), pointpart[:, :2], np.prod(pointpart[:, :2], axis=1), pointpart[:, :2] ** 2]
-        self.Ground_Model_C, _, _, _ = np.linalg.lstsq(A, pointpart[:, 2], rcond=None)
+            np.ones(ground_points.shape[0]), ground_points[:, :2], np.prod(ground_points[:, :2], axis=1), ground_points[:, :2] ** 2]
+        self.Ground_Model_C, _, _, _ = np.linalg.lstsq(A, ground_points[:, 2], rcond=None)
 
+        # Obtain a ground point for each stem by taking the XY component of the centroid
+        # and obtaining the coresponding Z coordinate from our quadratic ground model
         StemsWithGround = []
         for i in self.complete_Stems:
             center = np.mean(i, 0)
@@ -106,37 +193,68 @@ class TreeTool:
             Z = np.dot(np.c_[np.ones(X.shape), X, Y, X * Y, X ** 2, Y ** 2], self.Ground_Model_C)
             StemsWithGround.append([i, [X, Y, Z[0]]])
 
-        lowStems = [i for i in StemsWithGround if np.min(i[0], axis=0)[2] < (lowstems_Height + i[1][2])]
-        cutstems = [[i[0][i[0][:, 2] < (cutstems_Height + i[1][2])], i[1]] for i in lowStems]
+        # Filter stems that do not have points below our lowstems_height threshold
+        low_stems = [i for i in StemsWithGround if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])]
+        # Crop points above cutstems_height threshold
+        cut_stems = [[i[0][i[0][:, 2] < (cutstems_height + i[1][2])], i[1]] for i in low_stems]
 
-        self.cutstems = cutstems
-        self.lowstems = [i[0] for i in cutstems]
+        self.cut_stems = cut_stems
+        self.low_stems = [i[0] for i in cut_stems]
 
-    def Step_6_Get_Cylinder_Tree_Models(self, searchRadius=0.1):
-        finalstems = []
-        stemcyls = []
-        rech = []
-        for p in self.cutstems:
-            segpoints = p[0]
-            indices, model = segTree.segment_normals(segpoints, searchRadius=searchRadius,
+    def step_6_get_cylinder_tree_models(self, search_radius=0.1):
+        """
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+            search_radius : float
+                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
+
+        Returns:
+            None
+        """
+        final_stems = []
+        visualization_cylinders = []
+        for p in self.cut_stems:
+            # Segment to cylinders
+            stem_points = p[0]
+            indices, model = segTree.segment_normals(stem_points, searchRadius=search_radius,
                                                      model=pclpy.pcl.sample_consensus.SACMODEL_CYLINDER,
                                                      method=pclpy.pcl.sample_consensus.SAC_RANSAC, normalweight=0.01,
                                                      miter=10000, distance=0.08, rlim=[0, 0.4])
+            # If the model has more than 10 points    
             if len(indices) > 10:
+                # If the model finds an upright cylinder
                 if abs(np.dot(model[3:6], [0, 0, 1]) / np.linalg.norm(model[3:6])) > 0.5:
-                    newmodel = np.array(model)
+                    # Get centroid
+                    model = np.array(model)
                     Z = 1.3 + p[1][2]
                     Y = model[1] + model[4] * (Z - model[2]) / model[5]
                     X = model[0] + model[3] * (Z - model[2]) / model[5]
-                    newmodel[0:3] = np.array([X, Y, Z])
-                    newmodel[3:6] = Utils.similarize(newmodel[3:6], [0, 0, 1])
-                    finalstems.append({'tree': segpoints[indices], 'model': newmodel})
-                    stemcyls.append(Utils.makecylinder(model=newmodel, length=7, dense=60))
+                    model[0:3] = np.array([X, Y, Z])
+                    # make sure the vector is pointing upward
+                    model[3:6] = Utils.similarize(model[3:6], [0, 0, 1])
+                    final_stems.append({'tree': stem_points[indices], 'model': model})
+                    visualization_cylinders.append(Utils.makecylinder(model=model, length=7, dense=60))
 
-        self.finalstems = finalstems
-        self.stemcyls = stemcyls
+        self.finalstems = final_stems
+        self.visualization_cylinders = visualization_cylinders
 
-    def Step_7_Ellipse_fit(self):
+    def step_7_ellipse_fit(self):
+        """
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+            tolerance : float
+                maximum distance a point can be from a cluster for that point to be included in the cluster.
+            min_cluster_size: int
+                minimum number of points a cluster must have to not be discarded
+
+            max_cluster_size: int
+                maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+        """
         for i in self.finalstems:
             if len(i['tree']) > 5:
                 R = Utils.rotation_matrix_from_vectors(i['model'][3:6], [0, 0, 1])
@@ -154,25 +272,65 @@ class TreeTool:
                 i['Ellipse_diameter'] = None
                 i['final_diameter'] = None
 
-    def Full_Process(self, verticalityThresh=0.06, NonNANcurvatureThresh=0.1, tol=0.1, minc=40, maxc=6000000,
+    def Full_Process(self, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
                      max_angle=0.4, lowstems_Height=5, cutstems_Height=5, searchRadius=0.1):
-        print('Step_1_Remove_Floor')
+        """
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+            tolerance : float
+                maximum distance a point can be from a cluster for that point to be included in the cluster.
+            min_cluster_size: int
+                minimum number of points a cluster must have to not be discarded
+
+            max_cluster_size: int
+                maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+                minimum number of points a cluster must have to not be discarded
+
+            max_cluster_size: int
+                maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+        """
+        print('step_1_Remove_Floor')
         self.step_1_remove_floor()
-        print('Step_2_Normal_Filtering')
-        self.Step_2_Normal_Filtering(verticalityThresh, NonNANcurvatureThresh)
-        print('Step_3_Eucladean_Clustering')
-        self.Step_3_Eucladean_Clustering(tol, minc, maxc)
-        print('Step_4_Group_Stems')
-        self.Step_4_Group_Stems(max_angle)
-        print('Step_5_Get_Ground_Level_Trees')
-        self.Step_5_Get_Ground_Level_Trees(lowstems_Height, cutstems_Height)
-        print('Step_6_Get_Cylinder_Tree_Models')
-        self.Step_6_Get_Cylinder_Tree_Models(searchRadius)
-        print('Step_7_Ellipse_fit')
-        self.Step_7_Ellipse_fit()
+        print('step_2_normal_filtering')
+        self.step_2_normal_filtering(verticality_threshold, curvature_threshold)
+        print('step_3_euclidean_clustering')
+        self.step_3_euclidean_clustering(tolerance, min_cluster_size, max_cluster_size)
+        print('step_4_Group_Stems')
+        self.step_4_Group_Stems(max_angle)
+        print('step_5_Get_Ground_Level_Trees')
+        self.step_5_Get_Ground_Level_Trees(lowstems_Height, cutstems_Height)
+        print('step_6_Get_Cylinder_Tree_Models')
+        self.step_6_Get_Cylinder_Tree_Models(searchRadius)
+        print('step_7_Ellipse_fit')
+        self.step_7_Ellipse_fit()
         print('Done')
 
     def save_results(self, savelocation='results/myresults.csv'):
+        """
+        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+
+        Args:
+            tolerance : float
+                maximum distance a point can be from a cluster for that point to be included in the cluster.
+            min_cluster_size: int
+                minimum number of points a cluster must have to not be discarded
+
+            max_cluster_size: int
+                maximum number of points a cluster must have to not be discarded
+
+        Returns:
+            None
+        """
         Tree_Model_Info = [i['model'] for i in self.finalstems]
         Tree_diameter_Info = [i['final_diameter'] for i in self.finalstems]
 
