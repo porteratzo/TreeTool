@@ -128,23 +128,6 @@ def segment_normals(points, searchRadius=20, model=pclpy.pcl.sample_consensus.SA
     cylseg.segment(pI,Mc)
     return pI.indices, Mc.values
 
-"""
-def segment_normals(points, searchRadius=20, model=pcl.SACMODEL_LINE, method=pcl.SAC_RANSAC, normalweight=0.0001, miter=1000, distance=0.5, rlim=[0,0.5]):
-    
-    segcloud = pcl.PointCloud(points)
-    cylseg = segcloud.make_segmenter_normals(searchRadius=searchRadius)
-    cylseg.set_optimize_coefficients(True)
-    cylseg.set_model_type(model)
-    cylseg.set_method_type(method)
-    cylseg.set_normal_distance_weight(normalweight)
-    cylseg.set_max_iterations(miter)
-    cylseg.set_distance_threshold(distance)
-    cylseg.set_radius_limits(rlim[0],rlim[1])
-    indices, model = cylseg.segment()
-    return indices, model
-"""
-
-
 
 def findstemsLiDAR(pointsXYZ):
     Nogroundpoints,ground = FloorRemove(pointsXYZ)

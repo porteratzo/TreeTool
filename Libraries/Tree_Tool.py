@@ -203,7 +203,7 @@ class TreeTool:
 
     def step_6_get_cylinder_tree_models(self, search_radius=0.1):
         """
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+        For each cut stem we use ransac to extract a cylinder model
 
         Args:
             search_radius : float
@@ -241,27 +241,26 @@ class TreeTool:
 
     def step_7_ellipse_fit(self):
         """
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+        Extract the cylinder and ellipse diameter of each stem        
 
         Args:
-            tolerance : float
-                maximum distance a point can be from a cluster for that point to be included in the cluster.
-            min_cluster_size: int
-                minimum number of points a cluster must have to not be discarded
-
-            max_cluster_size: int
-                maximum number of points a cluster must have to not be discarded
+            None
 
         Returns:
             None
         """
         for i in self.finalstems:
+            # if the tree points has enough points to fit a ellipse
             if len(i['tree']) > 5:
+                # find a matrix that rotates the stem to be colinear to the z axis
                 R = Utils.rotation_matrix_from_vectors(i['model'][3:6], [0, 0, 1])
+                # we center the stem to the origen then rotate it
                 centeredtree = i['tree'] - i['model'][0:3]
                 correctedcyl = (R @ centeredtree.T).T
+                # fit an ellipse using only the xy coordinates
                 reg = LsqEllipse().fit(correctedcyl[:, 0:2])
                 center, a, b, phi = reg.as_parameters()
+
                 Ellipse_diameter = (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
                 cylinder_diameter = i['model'][6] * 2
                 i['cylinder_diameter'] = cylinder_diameter
@@ -272,61 +271,72 @@ class TreeTool:
                 i['Ellipse_diameter'] = None
                 i['final_diameter'] = None
 
-    def Full_Process(self, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
-                     max_angle=0.4, lowstems_Height=5, cutstems_Height=5, searchRadius=0.1):
+    def Full_Process(self, searchRadius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
+                     max_distance=0.4, lowstems_Height=5, cutstems_Height=5, searchRadius_cylinder=0.1):
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
 
         Args:
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+            search_radius : float
+                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
 
-        Args:
+            verticality_threshold: float
+                Threshold in radians for filtering the verticality of each point, we determine obtaining the dot product of each points normal by a vertical vector [0,0,1]
+
+            curvature_threshold: float
+                Threshold [0-1] for filtering the curvature of each point, the curvature is given by lambda_0/(lambda_0 + lambda_1 + lambda_2) where lambda_j is the
+                j-th eigenvalue of the covariance matrix of radius of points around each query point and lambda_0 < lambda_1 < lambda_2
+
             tolerance : float
-                maximum distance a point can be from a cluster for that point to be included in the cluster.
+                Maximum distance a point can be from a cluster for that point to be included in the cluster.
+
             min_cluster_size: int
-                minimum number of points a cluster must have to not be discarded
+                Minimum number of points a cluster must have to not be discarded
 
             max_cluster_size: int
+                Maximum number of points a cluster must have to not be discarded
+
+            max_distance : float
+                maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+
+            lowstems_height: int
+                minimum number of points a cluster must have to not be discarded
+
+            cutstems_height: int
                 maximum number of points a cluster must have to not be discarded
+
+            searchRadius_cylinder : float
+                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
+            
 
         Returns:
             None
                 minimum number of points a cluster must have to not be discarded
 
-            max_cluster_size: int
-                maximum number of points a cluster must have to not be discarded
-
-        Returns:
-            None
         """
         print('step_1_Remove_Floor')
         self.step_1_remove_floor()
         print('step_2_normal_filtering')
-        self.step_2_normal_filtering(verticality_threshold, curvature_threshold)
+        self.step_2_normal_filtering(searchRadius, verticality_threshold, curvature_threshold)
         print('step_3_euclidean_clustering')
         self.step_3_euclidean_clustering(tolerance, min_cluster_size, max_cluster_size)
         print('step_4_Group_Stems')
-        self.step_4_Group_Stems(max_angle)
+        self.step_4_group_stems(max_distance)
         print('step_5_Get_Ground_Level_Trees')
-        self.step_5_Get_Ground_Level_Trees(lowstems_Height, cutstems_Height)
+        self.step_5_get_ground_level_trees(lowstems_Height, cutstems_Height)
         print('step_6_Get_Cylinder_Tree_Models')
-        self.step_6_Get_Cylinder_Tree_Models(searchRadius)
+        self.step_6_get_cylinder_tree_models(searchRadius_cylinder)
         print('step_7_Ellipse_fit')
-        self.step_7_Ellipse_fit()
+        self.step_7_ellipse_fit()
         print('Done')
 
     def save_results(self, savelocation='results/myresults.csv'):
         """
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
+        Save a csv with XYZ and DBH of each detected tree
 
         Args:
-            tolerance : float
-                maximum distance a point can be from a cluster for that point to be included in the cluster.
-            min_cluster_size: int
-                minimum number of points a cluster must have to not be discarded
-
-            max_cluster_size: int
-                maximum number of points a cluster must have to not be discarded
+            savelocation : str
+                path to save file
 
         Returns:
             None
