@@ -58,7 +58,7 @@ class TreeTool:
         Returns:
             None
         """
-        no_ground_points, ground = segTree.FloorRemove(self.point_cloud)
+        no_ground_points, ground = segTree.floor_remove(self.point_cloud)
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(no_ground_points)
         self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
@@ -82,7 +82,7 @@ class TreeTool:
             None
         """
         # get point normals
-        self.non_ground_normals = segTree.ExtractNormals(self.non_ground_cloud.xyz, search_radius)
+        self.non_ground_normals = segTree.extract_normals(self.non_ground_cloud.xyz, search_radius)
 
         # remove Nan points
         non_nan_mask = np.bitwise_not(np.isnan(self.non_ground_normals.normals[:, 0]))
@@ -128,7 +128,7 @@ class TreeTool:
 
         Args:
             max_distance : float
-                maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+                Maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
 
         Returns:
             None
@@ -140,16 +140,16 @@ class TreeTool:
             vT, S = Utils.getPrincipalVectors(p - Centroid)
             straightness = S[0] / (S[0] + S[1] + S[2])
 
-            clustersDICT = {}
-            clustersDICT['cloud'] = p
-            clustersDICT['straightness'] = straightness
-            clustersDICT['center'] = Centroid
-            clustersDICT['direction'] = vT
-            stem_groups.append(clustersDICT)
+            clusters_dict = {}
+            clusters_dict['cloud'] = p
+            clusters_dict['straightness'] = straightness
+            clusters_dict['center'] = Centroid
+            clusters_dict['direction'] = vT
+            stem_groups.append(clusters_dict)
 
         # For each cluster, test if its centroid is near the line formed by the first principal vector of another cluster parting from the centroid of that cluster
         # if so, join the two clusters
-        temp_stems = [i['cloud'] for i in stem_groups]
+        temp_stems = [i['cloud'] for i in stem_groups] 
         for treenumber1 in reversed(range(0, len(temp_stems))):
             for treenumber2 in reversed(range(0, treenumber1 - 1)):
                 center1 = stem_groups[treenumber1]['center']
@@ -170,10 +170,10 @@ class TreeTool:
 
         Args:
             lowstems_height: int
-                minimum number of points a cluster must have to not be discarded
+                Minimum number of points a cluster must have to not be discarded
 
             cutstems_height: int
-                maximum number of points a cluster must have to not be discarded
+                Maximum number of points a cluster must have to not be discarded
 
         Returns:
             None
@@ -182,19 +182,19 @@ class TreeTool:
         ground_points = self.ground_cloud.xyz
         A = np.c_[
             np.ones(ground_points.shape[0]), ground_points[:, :2], np.prod(ground_points[:, :2], axis=1), ground_points[:, :2] ** 2]
-        self.Ground_Model_C, _, _, _ = np.linalg.lstsq(A, ground_points[:, 2], rcond=None)
+        self.ground_model_c, _, _, _ = np.linalg.lstsq(A, ground_points[:, 2], rcond=None)
 
         # Obtain a ground point for each stem by taking the XY component of the centroid
         # and obtaining the coresponding Z coordinate from our quadratic ground model
-        StemsWithGround = []
+        stems_with_ground = []
         for i in self.complete_Stems:
             center = np.mean(i, 0)
             X, Y = center[:2]
-            Z = np.dot(np.c_[np.ones(X.shape), X, Y, X * Y, X ** 2, Y ** 2], self.Ground_Model_C)
-            StemsWithGround.append([i, [X, Y, Z[0]]])
+            Z = np.dot(np.c_[np.ones(X.shape), X, Y, X * Y, X ** 2, Y ** 2], self.ground_model_c)
+            stems_with_ground.append([i, [X, Y, Z[0]]])
 
         # Filter stems that do not have points below our lowstems_height threshold
-        low_stems = [i for i in StemsWithGround if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])]
+        low_stems = [i for i in stems_with_ground if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])]
         # Crop points above cutstems_height threshold
         cut_stems = [[i[0][i[0][:, 2] < (cutstems_height + i[1][2])], i[1]] for i in low_stems]
 
@@ -217,7 +217,7 @@ class TreeTool:
         for p in self.cut_stems:
             # Segment to cylinders
             stem_points = p[0]
-            indices, model = segTree.segment_normals(stem_points, searchRadius=search_radius,
+            indices, model = segTree.segment_normals(stem_points, search_radius=search_radius,
                                                      model=pclpy.pcl.sample_consensus.SACMODEL_CYLINDER,
                                                      method=pclpy.pcl.sample_consensus.SAC_RANSAC, normalweight=0.01,
                                                      miter=10000, distance=0.08, rlim=[0, 0.4])
@@ -234,7 +234,7 @@ class TreeTool:
                     # make sure the vector is pointing upward
                     model[3:6] = Utils.similarize(model[3:6], [0, 0, 1])
                     final_stems.append({'tree': stem_points[indices], 'model': model})
-                    visualization_cylinders.append(Utils.makecylinder(model=model, length=7, dense=60))
+                    visualization_cylinders.append(Utils.makecylinder(model=model, height=7, density=60))
 
         self.finalstems = final_stems
         self.visualization_cylinders = visualization_cylinders
@@ -261,11 +261,11 @@ class TreeTool:
                 reg = LsqEllipse().fit(correctedcyl[:, 0:2])
                 center, a, b, phi = reg.as_parameters()
 
-                Ellipse_diameter = (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
+                ellipse_diameter = (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
                 cylinder_diameter = i['model'][6] * 2
                 i['cylinder_diameter'] = cylinder_diameter
-                i['Ellipse_diameter'] = Ellipse_diameter
-                i['final_diameter'] = max(Ellipse_diameter, cylinder_diameter)
+                i['Ellipse_diameter'] = ellipse_diameter
+                i['final_diameter'] = max(ellipse_diameter, cylinder_diameter)
             else:
                 i['cylinder_diameter'] = None
                 i['Ellipse_diameter'] = None
@@ -297,13 +297,13 @@ class TreeTool:
                 Maximum number of points a cluster must have to not be discarded
 
             max_distance : float
-                maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
+                Maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
 
             lowstems_height: int
-                minimum number of points a cluster must have to not be discarded
+                Minimum number of points a cluster must have to not be discarded
 
             cutstems_height: int
-                maximum number of points a cluster must have to not be discarded
+                Maximum number of points a cluster must have to not be discarded
 
             searchRadius_cylinder : float
                 Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
@@ -330,7 +330,7 @@ class TreeTool:
         self.step_7_ellipse_fit()
         print('Done')
 
-    def save_results(self, savelocation='results/myresults.csv'):
+    def save_results(self, save_location='results/myresults.csv'):
         """
         Save a csv with XYZ and DBH of each detected tree
 
@@ -341,14 +341,14 @@ class TreeTool:
         Returns:
             None
         """
-        Tree_Model_Info = [i['model'] for i in self.finalstems]
-        Tree_diameter_Info = [i['final_diameter'] for i in self.finalstems]
+        tree_model_info = [i['model'] for i in self.finalstems]
+        tree_diameter_info = [i['final_diameter'] for i in self.finalstems]
 
         data = {'X': [], 'Y': [], 'Z': [], 'DBH': []}
-        for i, j in zip(Tree_Model_Info, Tree_diameter_Info):
+        for i, j in zip(tree_model_info, tree_diameter_info):
             data['X'].append(i[0])
             data['Y'].append(i[1])
             data['Z'].append(i[2])
             data['DBH'].append(j)
 
-        pd.DataFrame.from_dict(data).to_csv(savelocation)
+        pd.DataFrame.from_dict(data).to_csv(save_location)
