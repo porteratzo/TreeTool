@@ -5,73 +5,160 @@ import matplotlib.pyplot as plt
 import open3d
 import Libraries.segTree as segTree
 
-def rotation_matrix_from_vectors(vec1, vec2):
-    if all(np.abs(vec1)==np.abs(vec2)):
+def rotation_matrix_from_vectors(vector1, vector2):
+    """
+        Finds a rotation matrix that can rotate vector1 to align with vector 2
+
+        Args:
+            vector1: np.narray (3)
+                Vector we would apply the rotation to
+        
+            vector2: np.narray (3)
+                Vector that will be aligned to
+
+        Returns:
+            rotation_matrix: np.narray (3,3)
+                Rotation matrix that when applied to vector1 will turn it to the same direction as vector2
+        """
+    if all(np.abs(vector1)==np.abs(vector2)):
         return np.eye(3)
-    a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
+    a, b = (vector1 / np.linalg.norm(vector1)).reshape(3), (vector2 / np.linalg.norm(vector2)).reshape(3)
     v = np.cross(a, b)
     c = np.dot(a, b)
     s = np.linalg.norm(v)
-    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+    matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
     return rotation_matrix
 
-def angle_b_vectors(a,b):
-    value = np.sum(np.multiply(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))
+def angle_between_vectors(vector1,vector2):
+    """
+        Finds the angle between 2 vectors
+
+        Args:
+            vec1: np.narray (3)
+                First vector to measure angle from
+        
+            vec2: np.narray (3)
+                Second vector to measure angle to
+
+        Returns:
+            None
+        """
+    value = np.sum(np.multiply(vector1, vector2)) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
     if (value<-1) | (value>1):
         value = np.sign(value)
     angle = np.arccos(value)
     return angle
 
-def makecylinder(model=[0,0,0,1,0,0,1],length = 1,dense=10):
+def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
+    """
+        Makes a point cloud of a cylinder given a (7) parameter cylinder model and a length and density
+
+        Args:
+            model: np.narray (7)
+                7 parameter cylinder model
+
+            height: float
+                Desired height of the generated cylinder
+
+            density: int
+                Desired density of the generated cylinder, 
+                this density is determines the amount of points on each ring that composes the cylinder and on how many rings the cylinder will have
+
+        Returns:
+            rotated_cylinder: np.narray (n,3)
+                3d point cloud of the desired cylinder
+        """
+    # extract info from cylinder model
     radius = model[6]
     X,Y,Z = model[:3]
-    direction = model[3:6]/np.linalg.norm(model[3:6])
-    n = np.arange(0,360,int(360/dense))
-    height = np.arange(0,length,length/dense)
+    # get 3d points to make an upright cylinder centered to the origin
+    n = np.arange(0,360,int(360/density))
+    height = np.arange(0,height,height/density)
     n = np.deg2rad(n)
     x,z = np.meshgrid(n,height)
     x = x.flatten()
     z = z.flatten()
     cyl = np.vstack([np.cos(x)*radius,np.sin(x)*radius,z]).T
+    # rotate and translate the cylinder to fit the model
     rotation = rotation_matrix_from_vectors([0,0,1],model[3:6])
-    rotatedcyl = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
-    return rotatedcyl   
+    rotated_cylinder = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
+    return rotated_cylinder   
 
-def DistPoint2Line(point,linepoint1, linepoint2=np.array([0,0,0])): #get minimum destance from a point to a line
-    return np.linalg.norm(np.cross((point-linepoint2),(point-linepoint1)))/np.linalg.norm(linepoint1 - linepoint2)
+def DistPoint2Line(point,line_point1, line_point2=np.array([0,0,0])):
+    """
+        Get minimum distance from a point to a line composed by 2 points
+
+        Args:
+            point: np.narray (3)
+                XYZ coordinates of the 3d point
+            
+            line_point1: np.narray (3)
+                XYZ coordinates of the first 3d point that composes the line if line_point2 is not given, line_point2 defaults to 0,0,0
+
+            line_point2: np.narray (3)
+                XYZ coordinates of the second 3d point that composes the line, if not given defaults to 0,0,0
+
+        Returns:
+            distance: float
+                Shortest distance from point to the line composed by line_point1 line_point2
+        """
+    return np.linalg.norm(np.cross((point-line_point2),(point-line_point1)))/np.linalg.norm(line_point1 - line_point2)
 
 
-def rotation_matrix_from_vectors(vec1, vec2):
-    if all(np.abs(vec1)==np.abs(vec2)):
-        return np.eye(3)
-    a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
-    v = np.cross(a, b)
-    c = np.dot(a, b)
-    s = np.linalg.norm(v)
-    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
-    return rotation_matrix
+def getPrincipalVectors(A): #
+    """
+        Get principal vectors and values of a matrix centered around (0,0,0)
 
+        Args:
+            A: np.narray (n,m)
+                Matrix to extract principal vectors from
 
-def getPrincipalVectors(A): #get pricipal vectors and values of a matrix centered around (0,0,0)
+        Returns:
+            Vectors: np.narray (m,m)
+                The principal vectors from A
+            Values: np.narray (m,m)
+                The principal values from A
+        """
     VT=np.linalg.eig(np.matmul(A.T,A))
     sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
-    Values,Vectors = zip(*sort)
-    return Vectors,Values
+    values,vectors = zip(*sort)
+    return vectors,values
 
 
-def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1, pointsize = 0.1):
+def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size = 0.1, pointsize = 0.1):
+    """
+        Opens an open3d visualizer and displays point clouds
+
+        Args:
+            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
+                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
+            
+            color_map: str | list 3
+                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
+
+            reduce_for_vis: bool
+                If true it performs voxel subsampling before displaying the point cloud
+
+            voxel_size: float
+                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
+
+            pointsize: int
+                Size of the distplayed points
+
+        Returns:
+            None
+        """
     assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
     
     if (type(nppoints) is not list) & (type(nppoints) is not tuple):
         nppoints = [nppoints]
     try:
-        vis = open3d.visualization.Visualizer()
-        vis.create_window()
-        opt = vis.get_render_option()
-        opt.background_color = np.asarray([0, 0, 0])
-        opt.point_size = pointsize
+        visualizer = open3d.visualization.Visualizer()
+        visualizer.create_window()
+        options = visualizer.get_render_option()
+        options.background_color = np.asarray([0, 0, 0])
+        options.point_size = pointsize
 
         if len(nppoints) > 1:
             for n,i in enumerate(nppoints):
@@ -79,39 +166,64 @@ def open3dpaint(nppoints, color = 'jet', reduce_for_Vis = False, voxelsize = 0.1
                 if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                     workpoints = workpoints.xyz
 
-                if reduce_for_Vis:
-                    workpoints = segTree.voxelize(workpoints,voxelsize)
+                if reduce_for_vis:
+                    workpoints = segTree.voxelize(workpoints,voxel_size)
 
                 points = convertcloud(workpoints)
-                colNORM = n/len(nppoints)/2 + n%2*.5
-                if type(color) == np.ndarray:
-                    pass
-                elif color == 'jet':
-                    color=cm.jet(colNORM)[:3]
+                color_coef = n/len(nppoints)/2 + n%2*.5
+                if type(color_map) == np.ndarray:
+                    color = color_map
+                elif color_map == 'jet':
+                    color=cm.jet(color_coef)[:3]
                 else:
-                    color=cm.Set1(colNORM)[:3]
+                    color=cm.Set1(color_coef)[:3]
                 points.colors = open3d.utility.Vector3dVector(np.ones_like(workpoints)*color)
                 #points.colors = open3d.utility.Vector3dVector(color)
-                vis.add_geometry(points)
+                visualizer.add_geometry(points)
         else:
             workpoints = nppoints[0]
             if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                 workpoints = workpoints.xyz
                 
-            if reduce_for_Vis:
-                workpoints = segTree.voxelize(workpoints,voxelsize)
+            if reduce_for_vis:
+                workpoints = segTree.voxelize(workpoints,voxel_size)
             points = convertcloud(workpoints)
-            vis.add_geometry(points)
-        vis.run()
-        vis.destroy_window()
+            visualizer.add_geometry(points)
+        visualizer.run()
+        visualizer.destroy_window()
         
     except Exception as e:
         print(type(e))
         print(e.args)
         print(e)
-        vis.destroy_window()
+        visualizer.destroy_window()
         
-def plt3dpaint(nppoints, color = 'jet', reduce_for_Vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
+def plt3dpaint(nppoints, color_map = 'jet', reduce_for_Vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
+    """
+        displays point clouds on matplotlib 3d scatter plots
+
+        Args:
+            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
+                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
+            
+            color_map: str | list 3
+                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
+
+            reduce_for_vis: bool
+                If true it performs voxel subsampling before displaying the point cloud
+
+            voxel_size: float
+                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
+
+            pointsize: int
+                Size of the distplayed points
+
+            subplots: int
+                Number of subplots to create, each plot has a view rotation of 360/subplots
+
+        Returns:
+            None
+        """
     assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
     cloudlist = []
     cloudcolors = []
@@ -125,20 +237,20 @@ def plt3dpaint(nppoints, color = 'jet', reduce_for_Vis = True, voxelsize = 0.2, 
                 workpoints = workpoints.xyz
 
             if reduce_for_Vis:
-                workpoints = segTree.voxelize(workpoints,voxelsize)
+                workpoints = segTree.voxelize(workpoints,voxel_size)
 
             
             cloudmin = np.min(workpoints[:,2])
             cloudmax = np.max(workpoints[:,2])
     
             points = workpoints
-            colNORM = n/len(nppoints)/2 + n%2*.5
-            if type(color) == np.ndarray:
-                pass
-            elif color == 'jet':
-                color=cm.jet(colNORM)[:3]
+            color_coef = n/len(nppoints)/2 + n%2*.5
+            if type(color_map) == np.ndarray:
+                color = color_map
+            elif color_map == 'jet':
+                color=cm.jet(color_coef)[:3]
             else:
-                color=cm.Set1(colNORM)[:3]
+                color=cm.Set1(color_coef)[:3]
             cloudcolors.append(np.ones_like(workpoints)*color + 0.4*(np.ones_like(workpoints) * ((workpoints[:,2] - cloudmin)/(cloudmax - cloudmin)).reshape(-1,1)-0.5) )
             cloudlist.append(points)
     else:
@@ -147,34 +259,57 @@ def plt3dpaint(nppoints, color = 'jet', reduce_for_Vis = True, voxelsize = 0.2, 
             workpoints = workpoints.xyz
 
         if reduce_for_Vis:
-            workpoints = segTree.voxelize(workpoints,voxelsize)
+            workpoints = segTree.voxelize(workpoints,voxel_size)
         cloudcolors.append(workpoints[:,2])
         cloudlist.append(workpoints)
 
-    PLTPC = np.concatenate(cloudlist)
-    PLTCL = np.concatenate(cloudcolors)
+    plt_pointcloud = np.concatenate(cloudlist)
+    plt_colors = np.concatenate(cloudcolors)
     if len(nppoints) > 1:
-        PLTCL = np.minimum(PLTCL,np.ones_like(PLTCL))
-        PLTCL = np.maximum(PLTCL,np.zeros_like(PLTCL))
+        plt_colors = np.minimum(plt_colors,np.ones_like(plt_colors))
+        plt_colors = np.maximum(plt_colors,np.zeros_like(plt_colors))
     fig = plt.figure(figsize=(30,16) )
     for i in range(subplots):
         ax = fig.add_subplot(1, subplots, i+1, projection='3d')
         ax.view_init(30, 360*i/subplots)
-        ax.scatter3D(PLTPC[:,0], PLTPC[:,1], PLTPC[:,2], c=PLTCL, s=pointsize)
+        ax.scatter3D(plt_pointcloud[:,0], plt_pointcloud[:,1], plt_pointcloud[:,2], c=plt_colors, s=pointsize)
 
         
         
 def convertcloud(points):
+    """
+        Turns a numpy (n,3) point cloud to a open3d pointcloud
+
+        Args:
+            points: np.narray (n,3)
+                A 3d numpy point cloud
+
+        Returns:
+            pcd: open3d.geometry.PointCloud
+                An open 3d point cloud
+        """
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(points)
-    #open3d.write_point_cloud(Path+'sync.ply', pcd)
-    #pcd_load = open3d.read_point_cloud(Path+'sync.ply')
     return pcd
 
-def similarize(vector,target):
-    Nvector = np.array(vector)
-    assert len(Nvector) == 3,'vector must be dim 3'
-    angle = angle_b_vectors(Nvector,target)
+def similarize(test, target):
+    """
+        Test a vectors angle to another vector and mirror its direction if it is greater than pi/2
+
+        Args:
+            test: np.narray (3)
+                3d vector to test
+
+            target: np.narray (3)
+                3d vector to which test has to have an angle smaller than pi/2
+
+        Returns:
+            test: np.narray (3)
+                3d vectors whos angle is below pi/2 with respect to the target vector
+        """
+    test = np.array(test)
+    assert len(test) == 3,'vector must be dim 3'
+    angle = angle_between_vectors(test,target)
     if angle > np.pi/2:
-        Nvector = -Nvector
-    return Nvector
+        test = -test
+    return test

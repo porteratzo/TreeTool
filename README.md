@@ -68,7 +68,8 @@ Run the following commands to make sure you have the required pieces of software
 ```
 conda install jupyter
 conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pandas
-pip install open3d lsq-ellipse jupyter
+
+pip install open3d lsq-ellipse jupyter matplotlib scipy
 ```
 
 * install Open3d, library for 3d point processing
@@ -104,7 +105,7 @@ conda install pandas
 ```
 conda install -c anaconda scipy
 ```
-* Instalar lsq-ellipse una pequeña herramienta para ajustar puntos a elipses
+* Install lsq-ellipse a tool for elipse fitting
 ```
 pip install lsq-ellipse
 ```
