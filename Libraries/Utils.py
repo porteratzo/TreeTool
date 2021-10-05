@@ -11,14 +11,14 @@ def rotation_matrix_from_vectors(vector1, vector2):
 
         Args:
             vector1: np.narray (3)
-                vector we would apply the rotation to
+                Vector we would apply the rotation to
         
             vector2: np.narray (3)
-                vector that will be aligned to
+                Vector that will be aligned to
 
         Returns:
             rotation_matrix: np.narray (3,3)
-            rotation matrix that when applied to vector1 will turn it to the same direction as vector2
+                Rotation matrix that when applied to vector1 will turn it to the same direction as vector2
         """
     if all(np.abs(vector1)==np.abs(vector2)):
         return np.eye(3)
@@ -36,10 +36,10 @@ def angle_between_vectors(vector1,vector2):
 
         Args:
             vec1: np.narray (3)
-                first vector to measure angle from
+                First vector to measure angle from
         
             vec2: np.narray (3)
-                second vector to measure angle to
+                Second vector to measure angle to
 
         Returns:
             None
@@ -55,19 +55,19 @@ def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
         Makes a point cloud of a cylinder given a (7) parameter cylinder model and a length and density
 
         Args:
-            model : np.narray (7)
+            model: np.narray (7)
                 7 parameter cylinder model
 
-            height : float
-                desired height of the generated cylinder
+            height: float
+                Desired height of the generated cylinder
 
-            density : int
-                desired density of the generated cylinder, 
+            density: int
+                Desired density of the generated cylinder, 
                 this density is determines the amount of points on each ring that composes the cylinder and on how many rings the cylinder will have
 
         Returns:
-            rotated_cylinder : np.narray (n,3)
-            3d point cloud of the desired cylinder
+            rotated_cylinder: np.narray (n,3)
+                3d point cloud of the desired cylinder
         """
     # extract info from cylinder model
     radius = model[6]
@@ -90,18 +90,18 @@ def DistPoint2Line(point,line_point1, line_point2=np.array([0,0,0])):
         Get minimum distance from a point to a line composed by 2 points
 
         Args:
-            point : np.narray (3)
+            point: np.narray (3)
                 XYZ coordinates of the 3d point
             
-            line_point1 : np.narray (3)
+            line_point1: np.narray (3)
                 XYZ coordinates of the first 3d point that composes the line if line_point2 is not given, line_point2 defaults to 0,0,0
 
-            line_point2 : np.narray (3)
+            line_point2: np.narray (3)
                 XYZ coordinates of the second 3d point that composes the line, if not given defaults to 0,0,0
 
         Returns:
             distance: float
-            shortest distance from point to the line composed by line_point1 line_point2
+                Shortest distance from point to the line composed by line_point1 line_point2
         """
     return np.linalg.norm(np.cross((point-line_point2),(point-line_point1)))/np.linalg.norm(line_point1 - line_point2)
 
@@ -111,40 +111,40 @@ def getPrincipalVectors(A): #
         Get principal vectors and values of a matrix centered around (0,0,0)
 
         Args:
-            A : np.narray (n,m)
-                matrix to extract principal vectors from
+            A: np.narray (n,m)
+                Matrix to extract principal vectors from
 
         Returns:
-            Vectors : np.narray (m,m)
-                the principal vectors from A
-            Values : np.narray (m,m)
-                the principal values from A
+            Vectors: np.narray (m,m)
+                The principal vectors from A
+            Values: np.narray (m,m)
+                The principal values from A
         """
     VT=np.linalg.eig(np.matmul(A.T,A))
     sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
-    Values,Vectors = zip(*sort)
-    return Vectors,Values
+    values,vectors = zip(*sort)
+    return vectors,values
 
 
-def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxelsize = 0.1, pointsize = 0.1):
+def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size = 0.1, pointsize = 0.1):
     """
         Opens an open3d visualizer and displays point clouds
 
         Args:
-            nppoints : pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
-                either a (n,3) point cloud or a list or tuple of point clouds to be displayed
+            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
+                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
             
             color_map: str | list 3
-                by default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
+                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
 
             reduce_for_vis: bool
-                if true it performs voxel subsampling before displaying the point cloud
+                If true it performs voxel subsampling before displaying the point cloud
 
-            voxelsize: float
-                if reduce_for_vis is true, sets the voxelsize for the voxel subsampling
+            voxel_size: float
+                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
 
             pointsize: int
-                size of the distplayed points
+                Size of the distplayed points
 
         Returns:
             None
@@ -167,7 +167,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxelsize =
                     workpoints = workpoints.xyz
 
                 if reduce_for_vis:
-                    workpoints = segTree.voxelize(workpoints,voxelsize)
+                    workpoints = segTree.voxelize(workpoints,voxel_size)
 
                 points = convertcloud(workpoints)
                 color_coef = n/len(nppoints)/2 + n%2*.5
@@ -186,7 +186,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxelsize =
                 workpoints = workpoints.xyz
                 
             if reduce_for_vis:
-                workpoints = segTree.voxelize(workpoints,voxelsize)
+                workpoints = segTree.voxelize(workpoints,voxel_size)
             points = convertcloud(workpoints)
             visualizer.add_geometry(points)
         visualizer.run()
@@ -198,28 +198,28 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxelsize =
         print(e)
         visualizer.destroy_window()
         
-def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
+def plt3dpaint(nppoints, color_map = 'jet', reduce_for_Vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
     """
         displays point clouds on matplotlib 3d scatter plots
 
         Args:
-            nppoints : pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
-                either a (n,3) point cloud or a list or tuple of point clouds to be displayed
+            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
+                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
             
             color_map: str | list 3
-                by default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
+                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
 
             reduce_for_vis: bool
-                if true it performs voxel subsampling before displaying the point cloud
+                If true it performs voxel subsampling before displaying the point cloud
 
-            voxelsize: float
-                if reduce_for_vis is true, sets the voxelsize for the voxel subsampling
+            voxel_size: float
+                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
 
             pointsize: int
-                size of the distplayed points
+                Size of the distplayed points
 
-            subplots : int
-                number of subplots to create, each plot has a view rotation of 360/subplots
+            subplots: int
+                Number of subplots to create, each plot has a view rotation of 360/subplots
 
         Returns:
             None
@@ -236,21 +236,21 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxelsize = 0
             if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                 workpoints = workpoints.xyz
 
-            if reduce_for_vis:
-                workpoints = segTree.voxelize(workpoints,voxelsize)
+            if reduce_for_Vis:
+                workpoints = segTree.voxelize(workpoints,voxel_size)
 
             
             cloudmin = np.min(workpoints[:,2])
             cloudmax = np.max(workpoints[:,2])
     
             points = workpoints
-            colNORM = n/len(nppoints)/2 + n%2*.5
+            color_coef = n/len(nppoints)/2 + n%2*.5
             if type(color_map) == np.ndarray:
                 color = color_map
             elif color_map == 'jet':
-                color=cm.jet(colNORM)[:3]
+                color=cm.jet(color_coef)[:3]
             else:
-                color=cm.Set1(colNORM)[:3]
+                color=cm.Set1(color_coef)[:3]
             cloudcolors.append(np.ones_like(workpoints)*color + 0.4*(np.ones_like(workpoints) * ((workpoints[:,2] - cloudmin)/(cloudmax - cloudmin)).reshape(-1,1)-0.5) )
             cloudlist.append(points)
     else:
@@ -258,8 +258,8 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxelsize = 0
         if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
             workpoints = workpoints.xyz
 
-        if reduce_for_vis:
-            workpoints = segTree.voxelize(workpoints,voxelsize)
+        if reduce_for_Vis:
+            workpoints = segTree.voxelize(workpoints,voxel_size)
         cloudcolors.append(workpoints[:,2])
         cloudlist.append(workpoints)
 
@@ -278,15 +278,15 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxelsize = 0
         
 def convertcloud(points):
     """
-        turns a numpy (n,3) point cloud to a open3d pointcloud
+        Turns a numpy (n,3) point cloud to a open3d pointcloud
 
         Args:
-            points : np.narray (n,3)
-                a 3d numpy point cloud
+            points: np.narray (n,3)
+                A 3d numpy point cloud
 
         Returns:
-            pcd : open3d.geometry.PointCloud
-                an open 3d point cloud
+            pcd: open3d.geometry.PointCloud
+                An open 3d point cloud
         """
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(points)
@@ -297,14 +297,14 @@ def similarize(test, target):
         Test a vectors angle to another vector and mirror its direction if it is greater than pi/2
 
         Args:
-            test : np.narray (3)
+            test: np.narray (3)
                 3d vector to test
 
-            target : np.narray (3)
+            target: np.narray (3)
                 3d vector to which test has to have an angle smaller than pi/2
 
         Returns:
-            test : np.narray (3)
+            test: np.narray (3)
                 3d vectors whos angle is below pi/2 with respect to the target vector
         """
     test = np.array(test)
