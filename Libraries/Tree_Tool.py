@@ -4,6 +4,7 @@ import pandas as pd
 import Libraries.segTree as segTree
 import Libraries.Utils as Utils
 from ellipse import LsqEllipse
+import os
 
 
 class TreeTool:
@@ -86,9 +87,8 @@ class TreeTool:
 
         # remove Nan points
         non_nan_mask = np.bitwise_not(np.isnan(self.non_ground_normals.normals[:, 0]))
-        self.non_ground_cloud.xyz = self.non_ground_cloud.xyz[non_nan_mask]
-        self.non_ground_normals.normals = self.non_ground_normals.normals[non_nan_mask]
-        self.non_ground_normals.curvature = self.non_ground_normals.curvature[non_nan_mask]
+        self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz[non_nan_mask])
+        self.non_ground_normals = pclpy.pcl.PointCloud.PointNormal(self.non_ground_normals.normals[non_nan_mask])
 
         # get mask by filtering verticality and curvature
         verticality = np.dot(self.non_ground_normals.normals, [[0], [0], [1]])
@@ -234,7 +234,7 @@ class TreeTool:
                     # make sure the vector is pointing upward
                     model[3:6] = Utils.similarize(model[3:6], [0, 0, 1])
                     final_stems.append({'tree': stem_points[indices], 'model': model})
-                    visualization_cylinders.append(Utils.makecylinder(model=model, length=7, dense=60))
+                    visualization_cylinders.append(Utils.makecylinder(model=model, height=7, density=60))
 
         self.finalstems = final_stems
         self.visualization_cylinders = visualization_cylinders
@@ -271,8 +271,8 @@ class TreeTool:
                 i['Ellipse_diameter'] = None
                 i['final_diameter'] = None
 
-    def Full_Process(self, searchRadius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
-                     max_distance=0.4, lowstems_Height=5, cutstems_Height=5, searchRadius_cylinder=0.1):
+    def Full_Process(self, search_radius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
+                     max_distance=0.4, lowstems_height=5, cutstems_height=5, searchRadius_cylinder=0.1):
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
 
@@ -317,13 +317,13 @@ class TreeTool:
         print('step_1_Remove_Floor')
         self.step_1_remove_floor()
         print('step_2_normal_filtering')
-        self.step_2_normal_filtering(searchRadius, verticality_threshold, curvature_threshold)
+        self.step_2_normal_filtering(search_radius, verticality_threshold, curvature_threshold)
         print('step_3_euclidean_clustering')
         self.step_3_euclidean_clustering(tolerance, min_cluster_size, max_cluster_size)
         print('step_4_Group_Stems')
         self.step_4_group_stems(max_distance)
         print('step_5_Get_Ground_Level_Trees')
-        self.step_5_get_ground_level_trees(lowstems_Height, cutstems_Height)
+        self.step_5_get_ground_level_trees(lowstems_height, cutstems_height)
         print('step_6_Get_Cylinder_Tree_Models')
         self.step_6_get_cylinder_tree_models(searchRadius_cylinder)
         print('step_7_Ellipse_fit')
@@ -350,5 +350,7 @@ class TreeTool:
             data['Y'].append(i[1])
             data['Z'].append(i[2])
             data['DBH'].append(j)
+
+        os.makedirs(os.path.dirname(savelocation), exist_ok=True)
 
         pd.DataFrame.from_dict(data).to_csv(savelocation)

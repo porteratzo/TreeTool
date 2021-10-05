@@ -198,7 +198,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxelsize =
         print(e)
         visualizer.destroy_window()
         
-def plt3dpaint(nppoints, color_map = 'jet', reduce_for_Vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
+def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxelsize = 0.2, pointsize = 0.1, subplots = 5):
     """
         displays point clouds on matplotlib 3d scatter plots
 
@@ -236,7 +236,7 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_Vis = True, voxelsize = 0
             if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                 workpoints = workpoints.xyz
 
-            if reduce_for_Vis:
+            if reduce_for_vis:
                 workpoints = segTree.voxelize(workpoints,voxelsize)
 
             
@@ -258,7 +258,7 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_Vis = True, voxelsize = 0
         if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
             workpoints = workpoints.xyz
 
-        if reduce_for_Vis:
+        if reduce_for_vis:
             workpoints = segTree.voxelize(workpoints,voxelsize)
         cloudcolors.append(workpoints[:,2])
         cloudlist.append(workpoints)

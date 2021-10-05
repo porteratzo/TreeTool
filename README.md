@@ -68,7 +68,8 @@ Run the following commands to make sure you have the required pieces of software
 ```
 conda install jupyter
 conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pandas
-pip install open3d lsq-ellipse jupyter
+
+pip install open3d lsq-ellipse jupyter matplotlib scipy
 ```
 
 * install Open3d, library for 3d point processing
