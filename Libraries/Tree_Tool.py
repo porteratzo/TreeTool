@@ -264,11 +264,11 @@ class TreeTool:
                 ellipse_diameter = (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
                 cylinder_diameter = i['model'][6] * 2
                 i['cylinder_diameter'] = cylinder_diameter
-                i['Ellipse_diameter'] = ellipse_diameter
+                i['ellipse_diameter'] = ellipse_diameter
                 i['final_diameter'] = max(ellipse_diameter, cylinder_diameter)
             else:
                 i['cylinder_diameter'] = None
-                i['Ellipse_diameter'] = None
+                i['ellipse_diameter'] = None
                 i['final_diameter'] = None
 
     def Full_Process(self, search_radius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
