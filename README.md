@@ -50,7 +50,7 @@ This may be useful to isolate the package installation to your current system se
 Create a virtual environment, called venv, under the current directory and use python as your interpreter
 
 ```
-conda create --name venv python = 3.7
+conda create --name venv python=3.7
 ```
 
 To activate the virtual environment run
