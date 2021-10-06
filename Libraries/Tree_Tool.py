@@ -87,20 +87,24 @@ class TreeTool:
 
         # remove Nan points
         non_nan_mask = np.bitwise_not(np.isnan(self.non_ground_normals.normals[:, 0]))
-        self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz[non_nan_mask])
-        self.non_ground_normals = pclpy.pcl.PointCloud.PointNormal(self.non_ground_normals.normals[non_nan_mask])
+        non_nan_cloud = self.non_ground_cloud.xyz[non_nan_mask]
+        non_nan_normals = self.non_ground_normals.normals[non_nan_mask]
+        non_nan_curvature = self.non_ground_normals.curvature[non_nan_mask]
 
         # get mask by filtering verticality and curvature
-        verticality = np.dot(self.non_ground_normals.normals, [[0], [0], [1]])
+        verticality = np.dot(non_nan_normals, [[0], [0], [1]])
         verticality_mask = (verticality < verticality_threshold) & (-verticality_threshold < verticality)
-        curvature_mask = (self.non_ground_normals.curvature < curvature_threshold)
+        curvature_mask = (non_nan_curvature < curvature_threshold)
         verticality_curvature_mask = verticality_mask.ravel() & curvature_mask.ravel()
 
+        only_horizontal_points = non_nan_cloud[verticality_curvature_mask]
+        only_horizontal_normals = non_nan_normals[verticality_curvature_mask]
+
         # set filtered and non filtered points
-        self.non_filtered_normals = self.non_ground_normals.normals
-        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz)
-        self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(self.non_ground_cloud.xyz[verticality_curvature_mask])
-        self.filtered_normals = self.non_ground_normals.normals[verticality_curvature_mask]
+        self.non_filtered_normals = non_nan_normals
+        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(non_nan_cloud)
+        self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(only_horizontal_points)
+        self.filtered_normals = only_horizontal_normals
 
     def step_3_euclidean_clustering(self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000):
         """
