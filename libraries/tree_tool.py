@@ -25,8 +25,8 @@ SOFTWARE.
 import pclpy
 import numpy as np
 import pandas as pd
-import Libraries.segTree as segTree
-import Libraries.Utils as Utils
+import libraries.seg_tree as seg_tree
+import libraries.utils as utils
 from ellipse import LsqEllipse
 import os
 
@@ -83,7 +83,7 @@ class TreeTool:
         Returns:
             None
         """
-        no_ground_points, ground = segTree.floor_remove(self.point_cloud)
+        no_ground_points, ground = seg_tree.floor_remove(self.point_cloud)
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(no_ground_points)
         self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
@@ -107,7 +107,7 @@ class TreeTool:
             None
         """
         # get point normals
-        self.non_ground_normals = segTree.extract_normals(self.non_ground_cloud.xyz, search_radius)
+        self.non_ground_normals = seg_tree.extract_normals(self.non_ground_cloud.xyz, search_radius)
 
         # remove Nan points
         non_nan_mask = np.bitwise_not(np.isnan(self.non_ground_normals.normals[:, 0]))
@@ -147,7 +147,7 @@ class TreeTool:
         Returns:
             None
         """
-        self.cluster_list = segTree.euclidean_cluster_extract(self.filtered_points.xyz, tolerance=tolerance, min_cluster_size=min_cluster_size, max_cluster_size=max_cluster_size)
+        self.cluster_list = seg_tree.euclidean_cluster_extract(self.filtered_points.xyz, tolerance=tolerance, min_cluster_size=min_cluster_size, max_cluster_size=max_cluster_size)
 
     def step_4_group_stems(self, max_distance=0.4):
         """
@@ -165,7 +165,7 @@ class TreeTool:
         stem_groups = []
         for n, p in enumerate(self.cluster_list):
             Centroid = np.mean(p, axis=0)
-            vT, S = Utils.getPrincipalVectors(p - Centroid)
+            vT, S = utils.getPrincipalVectors(p - Centroid)
             straightness = S[0] / (S[0] + S[1] + S[2])
 
             clusters_dict = {}
@@ -184,8 +184,8 @@ class TreeTool:
                 center2 = stem_groups[treenumber2]['center']
                 vector1 = stem_groups[treenumber1]['direction'][0]
                 vector2 = stem_groups[treenumber2]['direction'][0]
-                dist1 = Utils.DistPoint2Line(center2, vector1 + center1, center1)
-                dist2 = Utils.DistPoint2Line(center1, vector2 + center2, center2)
+                dist1 = utils.DistPoint2Line(center2, vector1 + center1, center1)
+                dist2 = utils.DistPoint2Line(center1, vector2 + center2, center2)
                 if (dist1 < max_distance) | (dist2 < max_distance):
                     temp_stems[treenumber2] = np.vstack([temp_stems[treenumber2], temp_stems.pop(treenumber1)])
                     break
@@ -245,7 +245,7 @@ class TreeTool:
         for p in self.cut_stems:
             # Segment to cylinders
             stem_points = p[0]
-            indices, model = segTree.segment_normals(stem_points, search_radius=search_radius,
+            indices, model = seg_tree.segment_normals(stem_points, search_radius=search_radius,
                                                      model=pclpy.pcl.sample_consensus.SACMODEL_CYLINDER,
                                                      method=pclpy.pcl.sample_consensus.SAC_RANSAC, normalweight=0.01,
                                                      miter=10000, distance=0.08, rlim=[0, 0.4])
@@ -260,9 +260,9 @@ class TreeTool:
                     X = model[0] + model[3] * (Z - model[2]) / model[5]
                     model[0:3] = np.array([X, Y, Z])
                     # make sure the vector is pointing upward
-                    model[3:6] = Utils.similarize(model[3:6], [0, 0, 1])
+                    model[3:6] = utils.similarize(model[3:6], [0, 0, 1])
                     final_stems.append({'tree': stem_points[indices], 'model': model})
-                    visualization_cylinders.append(Utils.makecylinder(model=model, height=7, density=60))
+                    visualization_cylinders.append(utils.makecylinder(model=model, height=7, density=60))
 
         self.finalstems = final_stems
         self.visualization_cylinders = visualization_cylinders
@@ -281,7 +281,7 @@ class TreeTool:
             # if the tree points has enough points to fit a ellipse
             if len(i['tree']) > 5:
                 # find a matrix that rotates the stem to be colinear to the z axis
-                R = Utils.rotation_matrix_from_vectors(i['model'][3:6], [0, 0, 1])
+                R = utils.rotation_matrix_from_vectors(i['model'][3:6], [0, 0, 1])
                 # we center the stem to the origen then rotate it
                 centeredtree = i['tree'] - i['model'][0:3]
                 correctedcyl = (R @ centeredtree.T).T
@@ -299,7 +299,7 @@ class TreeTool:
                 i['ellipse_diameter'] = None
                 i['final_diameter'] = None
 
-    def Full_Process(self, search_radius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
+    def full_process(self, search_radius=0.1, verticality_threshold=0.06, curvature_threshold=0.1, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000,
                      max_distance=0.4, lowstems_height=5, cutstems_height=5, searchRadius_cylinder=0.1):
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list

@@ -27,7 +27,7 @@ import pclpy
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d
-import Libraries.segTree as segTree
+import libraries.seg_tree as seg_tree
 
 def rotation_matrix_from_vectors(vector1, vector2):
     """
@@ -191,7 +191,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size 
                     workpoints = workpoints.xyz
 
                 if reduce_for_vis:
-                    workpoints = segTree.voxelize(workpoints,voxel_size)
+                    workpoints = seg_tree.voxelize(workpoints,voxel_size)
 
                 points = convertcloud(workpoints)
                 color_coef = n/len(nppoints)/2 + n%2*.5
@@ -210,7 +210,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size 
                 workpoints = workpoints.xyz
                 
             if reduce_for_vis:
-                workpoints = segTree.voxelize(workpoints,voxel_size)
+                workpoints = seg_tree.voxelize(workpoints,voxel_size)
             points = convertcloud(workpoints)
             visualizer.add_geometry(points)
         visualizer.run()
@@ -261,7 +261,7 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 
                 workpoints = workpoints.xyz
 
             if reduce_for_vis:
-                workpoints = segTree.voxelize(workpoints,voxel_size)
+                workpoints = seg_tree.voxelize(workpoints,voxel_size)
 
             
             cloudmin = np.min(workpoints[:,2])
@@ -283,7 +283,7 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 
             workpoints = workpoints.xyz
 
         if reduce_for_vis:
-            workpoints = segTree.voxelize(workpoints,voxel_size)
+            workpoints = seg_tree.voxelize(workpoints,voxel_size)
         cloudcolors.append(workpoints[:,2])
         cloudlist.append(workpoints)
 
