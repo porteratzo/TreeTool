@@ -63,7 +63,15 @@ conda activate venv
 Run the following commands to make sure you have the required pieces of software.
 
 * Firstly, install jupyter notebook, a web-based programming environment for python, and other languages!
-
+* install Open3d, library for 3d point processing
+* Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
+* Install laspy, a library for reading, writing and modifying files in format LAS for LiDAR data.
+* Install PDAL (Point Data Abstraction Library), and GDAL (Geospatial Data Abstraction Library) for python. The first one will be useful for dealing with point clouds while the second one handles raster and vector data.
+* Install pclpy a python wrapper for the pointcloud library (PCL) developed by davidcaron. It makes it easier to install dependencies for pclpy.
+* Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
+* Install pandas, a python library for data manipulation and analysis 
+* Install scipy, a python library for scientific computing 
+* Install lsq-ellipse a tool for elipse fitting
 
 ```
 conda install jupyter
@@ -72,43 +80,6 @@ conda install -c conda-forge -c davidcaron pdal python-pdal gdal pclpy laspy pan
 pip install open3d lsq-ellipse jupyter matplotlib scipy
 ```
 
-* install Open3d, library for 3d point processing
-```
-conda install -c open3d-admin open3d
-```
-
-* Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
-```
-conda config --add channels conda-forge
-```
-* Install laspy, a library for reading, writing and modifying files in format LAS for LiDAR data.
-```
-conda install laspy
-```
- * Install PDAL (Point Data Abstraction Library), and GDAL (Geospatial Data Abstraction Library) for python. The first one will be useful for dealing with point clouds while the second one handles raster and vector data.
- ```
-conda install -c conda-forge pdal python-pdal gdal
-```
- * Install pclpy a python wrapper for the pointcloud library (PCL) developed by davidcaron. It makes it easier to install dependencies for pclpy.
-```
-conda install -c conda-forge -c davidcaron pclpy
-```
-* Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
-```
-conda install matplotlib
-```
-* Install pandas, a python library for data manipulation and analysis 
-```
-conda install pandas
-```
-* Install scipy, a python library for scientific computing 
-```
-conda install -c anaconda scipy
-```
-* Install lsq-ellipse a tool for elipse fitting
-```
-pip install lsq-ellipse
-```
 
 Finally you can download the point clouds for TLS tests at this address.
 https://drive.google.com/drive/folders/15aW3Npr9lOdxGrswWrsN9wN0g2Q9pBGo?usp=sharing
