@@ -355,16 +355,16 @@ def similarize(test, target):
 
 def Iscaled_dimensions(las_file, new_data):
 
-    x_dimension = np.array(new_data['X']).astype(np.float128)
+    x_dimension = np.array(new_data['X'])
     scale = las_file.header.scales[0]
     offset = las_file.header.offsets[0]
     x = x_dimension + offset 
 
-    y_dimension = np.array(new_data['Y']).astype(np.float128)
+    y_dimension = np.array(new_data['Y'])
     offset = las_file.header.offsets[1]
     y = y_dimension + offset 
 
-    z_dimension = np.array(new_data['Z']).astype(np.float128)
+    z_dimension = np.array(new_data['Z'])
     offset = las_file.header.offsets[2]
     z = z_dimension + offset 
     return np.vstack([x, y, z]).T
