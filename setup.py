@@ -9,7 +9,7 @@ setup(
     author_email='omar.alfonso.montoya@hotmail.com',
     license='MIT License',
     packages=[],
-    install_requires=[open3d, lsq-ellipse                 
+    install_requires=[open3d, lsq-ellipse
                       ],
 
     classifiers=[
