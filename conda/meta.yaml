@@ -1,21 +1,24 @@
 package:
   name: treetool
-  version: "1.0"
+  version: "1.0.0"
 
 source:
-  #git_url: https://github.com/porteratzo/TreeTool/tree/setup
-  path: ..
+  git_url: https://github.com/porteratzo/treetool
 
 requirements:
   build:
-    - python
+    - python >=3.8,<3.9
     - setuptools
+    - pip
 
   run:
-    - python>=3.8,<3.9
-    - numpy>=1.17
+    - python >=3.8,<3.9
+    - numpy
+    - pandas
+    - matplotlib
     - qhull
     - pclpy
+    - pip
 
 about:
   license: MIT
