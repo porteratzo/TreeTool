@@ -9,6 +9,7 @@ dependencies:
 - conda-forge/label/gcc7::qhull
 - jupyter
 - ipykernel
+- matplotlib
 - pip
 - pip:
   - treetool

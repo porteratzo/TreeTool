@@ -25,19 +25,7 @@ Recommended technical requirements
 
 # Software requirements
 Anaconda
-Python 3.7
-packages
-• pip
-• open3d
-• laspy
-• pdal
-• python-pdal
-• gdal
-• pclpy
-• matplotlib
-• pandas
-• scipy
-
+Python 3.8
 
 # Install Anaconda
 Anaconda is a package manager system that may make you life easier with your setup. If you do not have it installed in your system, you may want to download it and install it from https://www.anaconda.com/products/individual/get-started
@@ -47,37 +35,15 @@ Anaconda is a package manager system that may make you life easier with your set
 
 This may be useful to isolate the package installation to your current system setup.
 
-Create a virtual environment, called venv, under the current directory and use python as your interpreter
+Create a virtual environment using our environment.yml
 
 ```
-conda create --name venv python=3.7
+conda env create
 ```
 
 To activate the virtual environment run
 ```
-conda activate venv
-```
-
-# Requirements for Installation
-
-Run the following commands to make sure you have the required pieces of software.
-
-* Firstly, install jupyter notebook, a web-based programming environment for python, and other languages!
-* install Open3d, library for 3d point processing
-* Install conda-forge, a collection of recipes, build infrastructure and distributions for the conda manager.
-* Install laspy, a library for reading, writing and modifying files in format LAS for LiDAR data.
-* Install PDAL (Point Data Abstraction Library), and GDAL (Geospatial Data Abstraction Library) for python. The first one will be useful for dealing with point clouds while the second one handles raster and vector data.
-* Install pclpy a python wrapper for the pointcloud library (PCL) developed by davidcaron. It makes it easier to install dependencies for pclpy.
-* Install matplotlib, a python library for plotting static, animated, and interactive visualizations. 
-* Install pandas, a python library for data manipulation and analysis 
-* Install scipy, a python library for scientific computing 
-* Install lsq-ellipse a tool for elipse fitting
-
-```
-conda install jupyter
-conda install -c conda-forge -c davidcaron -c conda-forge/label/gcc7 pdal python-pdal gdal pclpy laspy pandas -c conda-forge/label/gcc7::qhull
-
-pip install open3d lsq-ellipse jupyter matplotlib scipy
+conda activate treetool
 ```
 
 
