@@ -1,0 +1,14 @@
+# run: conda env create --file environment.yml
+name: treetool
+channels:
+  - "conda-forge"
+  - "davidcaron"
+  - "conda-forge/label/gcc7"
+dependencies:
+- davidcaron::pclpy
+- conda-forge/label/gcc7::qhull
+- jupyter
+- ipykernel
+- pip
+- pip:
+  - treetool
