@@ -181,7 +181,7 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size 
         visualizer = open3d.visualization.Visualizer()
         visualizer.create_window()
         options = visualizer.get_render_option()
-        options.background_color = np.asarray([0, 0, 0])
+        options.background_color = np.asarray([1, 1, 1])
         options.point_size = pointsize
 
         if len(nppoints) > 1:

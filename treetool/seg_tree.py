@@ -360,6 +360,7 @@ def segment_normals(
     segmenter.setModelType(model)
     segmenter.setMaxIterations(miter)
     segmenter.setRadiusLimits(rlim[0], rlim[1])
+    segmenter.setDistanceFromOrigin(0.4)
     segmenter.setNormalDistanceWeight(normalweight)
     pI = pclpy.pcl.PointIndices()
     Mc = pclpy.pcl.ModelCoefficients()
@@ -449,3 +450,17 @@ def voxelize(points, leaf=0.1):
         return filtered_pointcloud
     else:
         return filtered_pointcloud.xyz
+
+
+def box_crop(points, min, max):
+    if type(points) == pclpy.pcl.PointCloud.PointXYZ:
+        sub_pcd = pclpy.pcl.PointCloud.PointXYZ()
+        cropfilter = pclpy.pcl.filters.CropBox.PointXYZ()
+    elif pclpy.pcl.PointCloud.PointXYZRGB:
+        sub_pcd = pclpy.pcl.PointCloud.PointXYZRGB()
+        cropfilter = pclpy.pcl.filters.CropBox.PointXYZ()
+    cropfilter.setMin(np.asarray(min))
+    cropfilter.setMax(np.asarray(max))
+    cropfilter.setInputCloud(points)
+    cropfilter.filter(sub_pcd)
+    return sub_pcd.xyz
