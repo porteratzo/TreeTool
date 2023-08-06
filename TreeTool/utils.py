@@ -352,3 +352,34 @@ def similarize(test, target):
     if angle > np.pi/2:
         test = -test
     return test
+
+def Iscaled_dimensions(las_file, new_data):
+
+    x_dimension = np.array(new_data['X'])
+    scale = las_file.header.scales[0]
+    offset = las_file.header.offsets[0]
+    x = x_dimension + offset 
+
+    y_dimension = np.array(new_data['Y'])
+    offset = las_file.header.offsets[1]
+    y = y_dimension + offset 
+
+    z_dimension = np.array(new_data['Z'])
+    offset = las_file.header.offsets[2]
+    z = z_dimension + offset 
+    return np.vstack([x, y, z]).T
+
+def scaled_dimensions(las_file, ):
+    xyz = las_file.xyz
+    x_dimension = xyz[:,0]
+    offset = las_file.header.offsets[0]
+    x = (x_dimension  - offset)
+
+    y_dimension = xyz[:,1]
+    offset = las_file.header.offsets[1]
+    y = (y_dimension  - offset)
+
+    z_dimension = xyz[:,2]
+    offset = las_file.header.offsets[2]
+    z = (z_dimension  - offset)
+    return np.vstack([x, y, z]).T
