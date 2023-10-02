@@ -437,7 +437,7 @@ def voxelize(points, leaf=0.1, use_o3d=False):
     if use_o3d:
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points)
-        downpcd = pcd.voxel_down_sample(voxel_size=0.04)
+        downpcd = pcd.voxel_down_sample(voxel_size=leaf)
         return np.array(downpcd.points)
     else:
         if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
