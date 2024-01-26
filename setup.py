@@ -10,7 +10,7 @@ setup(
     author_email='omar.alfonso.montoya@hotmail.com',
     license='MIT License',
     packages=setuptools.find_packages(),
-    install_requires=['open3d', 'lsq-ellipse', 'matplotlib', 'pandas', 'scipy' ,'laspy'],
+    install_requires=['open3d', 'lsq-ellipse', 'matplotlib', 'pandas', 'scipy' ,'laspy','porteratzolibs'],
     classifiers=[
     ],
 )

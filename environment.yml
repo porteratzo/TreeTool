@@ -1,15 +1,13 @@
 # run: conda env create --file environment.yml
-name: treetool
+name: newtt
 channels:
-  - "conda-forge"
-  - "davidcaron"
-  - "conda-forge/label/gcc7"
+  - conda-forge
 dependencies:
-- davidcaron::pclpy
-- conda-forge/label/gcc7::qhull
-- jupyter
-- ipykernel
-- matplotlib
+- python=3.9
+- pdal
+- python-pdal
+- gdal
 - pip
 - pip:
-  - treetool
+    - open3d
+    - matplotlib

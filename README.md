@@ -8,7 +8,7 @@ The main objective of our work is to estimate the carbon content of trees in a f
 treetool is made up of some sample notebooks and three libraries segTree, treetool and Utils. segTree contains several useful functions that allow us to quickly perform operations on point clouds. treetool contains our main class. When called, it performs the complete process of tree detection and extraction of diameters at chest height. Finally, Utils contains special functions required by the internal processes and functions for displaying point clouds.
 
 # Installation
-
+might need to install pdal with sudo apt install pdal first
 # Hardware requirements
 The requirements will depend mainly on the size of the point clouds that will be worked with, since a cloud can vary between hundreds of thousands to hundreds of millions of points. The recommended requirements are designed to process clouds with around ten million points with good fluency.
 Minimum technical requirements

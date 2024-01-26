@@ -23,11 +23,12 @@ SOFTWARE.
 """
 
 import numpy as np
-import pclpy
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d
 import treetool.seg_tree as seg_tree
+
+
 
 def rotation_matrix_from_vectors(vector1, vector2):
     """
@@ -148,157 +149,6 @@ def getPrincipalVectors(A): #
     sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
     values,vectors = zip(*sort)
     return vectors,values
-
-
-def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size = 0.1, pointsize = 0.1):
-    """
-        Opens an open3d visualizer and displays point clouds
-
-        Args:
-            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
-                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
-            
-            color_map: str | list 3
-                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
-
-            reduce_for_vis: bool
-                If true it performs voxel subsampling before displaying the point cloud
-
-            voxel_size: float
-                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
-
-            pointsize: int
-                Size of the distplayed points
-
-        Returns:
-            None
-        """
-    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
-    
-    if (type(nppoints) is not list) & (type(nppoints) is not tuple):
-        nppoints = [nppoints]
-    try:
-        visualizer = open3d.visualization.Visualizer()
-        visualizer.create_window()
-        options = visualizer.get_render_option()
-        options.background_color = np.asarray([1, 1, 1])
-        options.point_size = pointsize
-
-        if len(nppoints) > 1:
-            for n,i in enumerate(nppoints):
-                workpoints = i
-                if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
-                    workpoints = workpoints.xyz
-
-                if reduce_for_vis:
-                    workpoints = seg_tree.voxelize(workpoints,voxel_size)
-
-                points = convertcloud(workpoints)
-                color_coef = n/len(nppoints)/2 + n%2*.5
-                if type(color_map) == np.ndarray:
-                    color = color_map
-                elif color_map == 'jet':
-                    color=cm.jet(color_coef)[:3]
-                else:
-                    color=cm.Set1(color_coef)[:3]
-                points.colors = open3d.utility.Vector3dVector(np.ones_like(workpoints)*color)
-                #points.colors = open3d.utility.Vector3dVector(color)
-                visualizer.add_geometry(points)
-        else:
-            workpoints = nppoints[0]
-            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
-                workpoints = workpoints.xyz
-                
-            if reduce_for_vis:
-                workpoints = seg_tree.voxelize(workpoints,voxel_size)
-            points = convertcloud(workpoints)
-            visualizer.add_geometry(points)
-        visualizer.run()
-        visualizer.destroy_window()
-        
-    except Exception as e:
-        print(type(e))
-        print(e.args)
-        print(e)
-        visualizer.destroy_window()
-        
-def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
-    """
-        displays point clouds on matplotlib 3d scatter plots
-
-        Args:
-            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
-                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
-            
-            color_map: str | list 3
-                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
-
-            reduce_for_vis: bool
-                If true it performs voxel subsampling before displaying the point cloud
-
-            voxel_size: float
-                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
-
-            pointsize: int
-                Size of the distplayed points
-
-            subplots: int
-                Number of subplots to create, each plot has a view rotation of 360/subplots
-
-        Returns:
-            None
-        """
-    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
-    cloudlist = []
-    cloudcolors = []
-    if (type(nppoints) is not list) & (type(nppoints) is not tuple):
-        nppoints = [nppoints]
-        
-    if len(nppoints) > 1:
-        for n,i in enumerate(nppoints):
-            workpoints = i
-            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
-                workpoints = workpoints.xyz
-
-            if reduce_for_vis:
-                workpoints = seg_tree.voxelize(workpoints,voxel_size)
-
-            
-            cloudmin = np.min(workpoints[:,2])
-            cloudmax = np.max(workpoints[:,2])
-    
-            points = workpoints
-            color_coef = n/len(nppoints)/2 + n%2*.5
-            if type(color_map) == np.ndarray:
-                color = color_map
-            elif color_map == 'jet':
-                color=cm.jet(color_coef)[:3]
-            else:
-                color=cm.Set1(color_coef)[:3]
-            cloudcolors.append(np.ones_like(workpoints)*color + 0.4*(np.ones_like(workpoints) * ((workpoints[:,2] - cloudmin)/(cloudmax - cloudmin)).reshape(-1,1)-0.5) )
-            cloudlist.append(points)
-    else:
-        workpoints = nppoints[0]
-        if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
-            workpoints = workpoints.xyz
-
-        if reduce_for_vis:
-            workpoints = seg_tree.voxelize(workpoints,voxel_size)
-        cloudcolors.append(workpoints[:,2])
-        cloudlist.append(workpoints)
-
-    plt_pointcloud = np.concatenate(cloudlist)
-    plt_colors = np.concatenate(cloudcolors)
-    if len(nppoints) > 1:
-        plt_colors = np.minimum(plt_colors,np.ones_like(plt_colors))
-        plt_colors = np.maximum(plt_colors,np.zeros_like(plt_colors))
-    fig = plt.figure(figsize=(30,16) )
-    for i in range(subplots):
-        ax = fig.add_subplot(1, subplots, i+1, projection='3d')
-        ax.view_init(30, 360*i/subplots)
-        ax.scatter3D(plt_pointcloud[:,0], plt_pointcloud[:,1], plt_pointcloud[:,2], c=plt_colors, s=pointsize)
-
-        
         
 def convertcloud(points):
     """
