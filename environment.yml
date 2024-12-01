@@ -8,6 +8,3 @@ dependencies:
 - python-pdal
 - gdal
 - pip
-- pip:
-    - open3d
-    - matplotlib
