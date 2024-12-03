@@ -340,6 +340,8 @@ class treetool:
         for p in self.cut_stems:
             # Segment to cylinders
             stem_points = p[0]
+            if len(stem_points) <= 1:
+                continue
             if stick:
                 indices, model = seg_tree.fit_stick_ransac(
                     stem_points, max_iterations=1000, distance_threshold=0.4
@@ -486,7 +488,7 @@ class treetool:
         print("step_2_normal_filtering")
         self.step_2_normal_filtering(search_radius, verticality_threshold, curvature_threshold)
         print("step_3_euclidean_clustering")
-        self.step_3_euclidean_clustering(tolerance, min_cluster_size, max_cluster_size)
+        self.step_3_dbscan_clustering(tolerance, min_cluster_size)
         print("step_4_Group_Stems")
         self.step_4_group_stems(max_distance)
         print("step_5_Get_Ground_Level_Trees")
