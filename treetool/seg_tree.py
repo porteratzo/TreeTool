@@ -27,9 +27,10 @@ import numpy as np
 import pdal
 import os
 import random
+from typing import Union, Tuple, List, Optional
 
 
-def voxelize(points, leaf=0.1):
+def voxelize(points: np.ndarray, leaf: float = 0.1) -> np.ndarray:
     """
     Use voxelgrid to subsample a pointcloud
 
@@ -51,7 +52,7 @@ def voxelize(points, leaf=0.1):
 
 
 class O3dPointsReturnSame:
-    def __init__(self, points) -> None:
+    def __init__(self, points: Union[np.ndarray, o3d.geometry.PointCloud]) -> None:
         """
         Initializes the O3dPointsReturnSame object.
 
@@ -68,7 +69,9 @@ class O3dPointsReturnSame:
             self.pointcloud = o3d.geometry.PointCloud()
             self.pointcloud.points = o3d.utility.Vector3dVector(points)
 
-    def get(self, pointcloud=None):
+    def get(
+        self, pointcloud: Union[np.ndarray, o3d.geometry.PointCloud] = None
+    ) -> Union[np.ndarray, o3d.geometry.PointCloud]:
         """
         Retrieves the current point cloud or points.
 
@@ -90,7 +93,7 @@ class O3dPointsReturnSame:
         else:
             return np.asarray(cur_cloud.points)
 
-    def get_cloud(self):
+    def get_cloud(self) -> o3d.geometry.PointCloud:
         """
         Retrieves the internally stored point cloud.
 
@@ -99,7 +102,7 @@ class O3dPointsReturnSame:
         """
         return self.pointcloud
 
-    def get_points(self):
+    def get_points(self) -> np.ndarray:
         """
         Retrieves the points of the internally stored point cloud.
 
@@ -110,13 +113,13 @@ class O3dPointsReturnSame:
 
 
 def floor_remove(
-    points,
-    set_max_window_size=20,
-    set_slope=1.0,
-    set_initial_distance=0.5,
-    set_max_distance=3.0,
-    cell_size=1,
-):
+    points: np.ndarray,
+    set_max_window_size: int = 20,
+    set_slope: float = 1.0,
+    set_initial_distance: float = 0.5,
+    set_max_distance: float = 3.0,
+    cell_size: int = 1,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Takes a point cloud and returns 2 pointclouds, the first for non ground points and the second
     for ground points
@@ -174,7 +177,9 @@ def floor_remove(
     return return_same.get(Nogroundpoints), return_same.get(ground)
 
 
-def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
+def radius_outlier_removal(
+    points: np.ndarray, min_n: int = 6, radius: float = 0.4, organized: bool = True
+) -> np.ndarray:
     """
     Takes a point cloud and removes points that have less than minn neigbors in a certain radius
 
@@ -210,7 +215,7 @@ def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
     return cl
 
 
-def compute_eigenvalues(chunk_of_matrices):
+def compute_eigenvalues(chunk_of_matrices: List[np.ndarray]) -> List[float]:
     _eigenvalues_list = []
     for matrix in chunk_of_matrices:
         h1, h2, h3 = np.linalg.eigvals(matrix)
@@ -218,7 +223,9 @@ def compute_eigenvalues(chunk_of_matrices):
     return _eigenvalues_list
 
 
-def extract_normals(points, search_radius=0.1):
+def extract_normals(
+    points: np.ndarray, search_radius: float = 0.1
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Takes a point cloud and approximates their normals using PCA
 
@@ -248,7 +255,9 @@ def extract_normals(points, search_radius=0.1):
     return np.asarray(PointCloudV.normals), np.asarray(result)
 
 
-def dbscan_cluster_extract(points, eps=2, min_points=20):
+def dbscan_cluster_extract(
+    points: np.ndarray, eps: float = 2, min_points: int = 20
+) -> List[np.ndarray]:
     """
     Takes a point cloud and clusters the points with euclidean clustering
 
@@ -286,8 +295,13 @@ def dbscan_cluster_extract(points, eps=2, min_points=20):
 
 
 # Function to fit a cylinder model using RANSAC
-def fit_cylinder_ransac(points, max_iterations=1000, distance_threshold=0.01, rlim=[None, None]):
-    
+def fit_cylinder_ransac(
+    points: np.ndarray,
+    max_iterations: int = 1000,
+    distance_threshold: float = 0.01,
+    rlim: List[Optional[float]] = [None, None],
+) -> Tuple[np.ndarray, np.ndarray]:
+
     def compute_inliers(points, axis_point1, axis_point2, radius, distance_threshold):
         axis_vector = axis_point2 - axis_point1
         axis_length = np.linalg.norm(axis_vector)
@@ -323,18 +337,26 @@ def fit_cylinder_ransac(points, max_iterations=1000, distance_threshold=0.01, rl
 
         if rlim[0] is None or radius > rlim[0]:
             if rlim[1] is None or radius < rlim[1]:
-                inliers = compute_inliers(points, axis_point1, axis_point2, radius, distance_threshold)
+                inliers = compute_inliers(
+                    points, axis_point1, axis_point2, radius, distance_threshold
+                )
                 # Track the best model (with the most inliers)
                 if len(inliers) > len(best_inliers):
                     best_inliers = inliers
-                    best_cylinder = np.concatenate([axis_point1, axis_point2, np.array(radius)[None]])
+                    best_cylinder = np.concatenate(
+                        [axis_point1, axis_point2, np.array(radius)[None]]
+                    )
     best_cylinder[3:6] = best_cylinder[3:6] - best_cylinder[0:3]
-    best_cylinder[3:6] = best_cylinder[3:6]/np.linalg.norm(best_cylinder[3:6])
+    best_cylinder[3:6] = best_cylinder[3:6] / np.linalg.norm(best_cylinder[3:6])
     return best_inliers, best_cylinder
 
 
 # Function to fit a stick model using RANSAC
-def fit_stick_ransac(point_cloud, max_iterations=1000, distance_threshold=0.01):
+def fit_stick_ransac(
+    point_cloud: o3d.geometry.PointCloud,
+    max_iterations: int = 1000,
+    distance_threshold: float = 0.01,
+) -> Tuple[Tuple[np.ndarray, np.ndarray], List[int]]:
     def point_to_line_distance(point, line_point1, line_point2):
         # Vector from line_point1 to line_point2
         line_vector = line_point2 - line_point1
@@ -381,14 +403,14 @@ def fit_stick_ransac(point_cloud, max_iterations=1000, distance_threshold=0.01):
 if False:
 
     def region_growing(
-        Points,
-        ksearch=30,
-        minc=20,
-        maxc=100000,
-        nn=30,
-        smoothness=30.0,
-        curvature=1.0,
-    ):
+        Points: np.ndarray,
+        ksearch: int = 30,
+        minc: int = 20,
+        maxc: int = 100000,
+        nn: int = 30,
+        smoothness: float = 30.0,
+        curvature: float = 1.0,
+    ) -> List[np.ndarray]:
         """
         Takes a point cloud and clusters the points with region growing
 
@@ -445,7 +467,7 @@ if False:
         region_growing_clusters = [pointcloud.xyz[i2.indices] for i2 in clusters]
         return region_growing_clusters
 
-    def findstemsLiDAR(pointsXYZ):
+    def findstemsLiDAR(pointsXYZ: np.ndarray) -> Tuple[List[np.ndarray], List[np.ndarray]]:
         """
         Takes a point cloud from a Cylindrical LiDAR and extract stems and their models
 

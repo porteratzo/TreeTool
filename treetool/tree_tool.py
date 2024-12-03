@@ -32,7 +32,9 @@ import open3d as o3d
 from typing import Union
 
 
-def set_point_cloud(input_point_cloud: Union[np.ndarray, o3d.geometry.PointCloud]):
+def set_point_cloud(
+    input_point_cloud: Union[np.ndarray, o3d.geometry.PointCloud]
+) -> o3d.geometry.PointCloud:
     """
     Resets the point cloud that treetool will process
 
@@ -62,7 +64,7 @@ class treetool:
       stem locations and DBHs
     """
 
-    def __init__(self, point_cloud: Union[np.ndarray, o3d.geometry.PointCloud] = None):
+    def __init__(self, point_cloud: Union[np.ndarray, o3d.geometry.PointCloud] = None) -> None:
         """
         Parameters
         ----------
@@ -80,7 +82,7 @@ class treetool:
         set_initial_distance: float = 0.5,
         set_max_distance: float = 3.0,
         set_cell_size: float = 1.0,
-    ):
+    ) -> None:
         """
         Applies ApproximateProgressiveMorphologicalFilter to point_cloud to separate the it's
         points into non_ground and ground points and assigns them to the non_ground_cloud and
@@ -98,18 +100,18 @@ class treetool:
             set_slope=set_slope,
             set_initial_distance=set_initial_distance,
             set_max_distance=set_max_distance,
-            cell_size=set_cell_size
+            cell_size=set_cell_size,
         )
         self.non_ground_cloud: o3d.geometry.PointCloud = set_point_cloud(no_ground_points)
         self.ground_cloud: o3d.geometry.PointCloud = set_point_cloud(ground)
 
     def step_2_normal_filtering(
         self,
-        search_radius=0.08,
-        verticality_threshold=0.08,
-        curvature_threshold=0.12,
-        min_points=0,
-    ):
+        search_radius: float = 0.08,
+        verticality_threshold: float = 0.08,
+        curvature_threshold: float = 0.12,
+        min_points: int = 0,
+    ) -> None:
         """
         Filters non_ground_cloud by approximating its normals and removing points with a high
         curvature and a non near horizontal normal
@@ -173,7 +175,7 @@ class treetool:
         self.filtered_points = only_horizontal_points
         self.filtered_normals = only_horizontal_normals
 
-    def step_3_dbscan_clustering(self, eps=0.1, min_cluster_size=40):
+    def step_3_dbscan_clustering(self, eps: float = 0.1, min_cluster_size: int = 40) -> None:
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute
         cluster_list
@@ -198,7 +200,7 @@ class treetool:
             min_points=min_cluster_size,
         )
 
-    def step_4_group_stems(self, max_distance=0.4):
+    def step_4_group_stems(self, max_distance: float = 0.4) -> None:
         """
         For each cluster in attribute cluster_list, test if its centroid is near the line formed by
         the first principal vector of another cluster parting from the centroid of that cluster
@@ -253,11 +255,11 @@ class treetool:
 
     def step_5_get_ground_level_trees(
         self,
-        lowstems_height=5,
-        cutstems_height=5,
-        use_sampling=False,
-        dont_cut=False,
-    ):
+        lowstems_height: int = 5,
+        cutstems_height: int = 5,
+        use_sampling: bool = False,
+        dont_cut: bool = False,
+    ) -> None:
         """
         Filters stems to only keep those near the ground and crops them up to a certain height
 
@@ -323,7 +325,9 @@ class treetool:
         self.cut_stems = cut_stems
         self.low_stems = [i[0] for i in cut_stems]
 
-    def step_6_get_cylinder_tree_models(self, search_radius=0.1, distance=0.08, stick=False):
+    def step_6_get_cylinder_tree_models(
+        self, search_radius: float = 0.1, distance_threshold: float = 0.08
+    ) -> None:
         """
         For each cut stem we use ransac to extract a cylinder model
 
@@ -342,14 +346,12 @@ class treetool:
             stem_points = p[0]
             if len(stem_points) <= 1:
                 continue
-            if stick:
-                indices, model = seg_tree.fit_stick_ransac(
-                    stem_points, max_iterations=1000, distance_threshold=0.4
-                )
-            else:
-                indices, model = seg_tree.fit_cylinder_ransac(
-                    stem_points, max_iterations=1000, distance_threshold=0.08, rlim=[0, 0.4]
-                )
+            indices, model = seg_tree.fit_cylinder_ransac(
+                stem_points,
+                max_iterations=1000,
+                distance_threshold=distance_threshold,
+                rlim=[0, search_radius],
+            )
             # If the model has more than 10 points
             if len(indices) > 10:
                 # If the model finds an upright cylinder
@@ -376,7 +378,7 @@ class treetool:
         self.finalstems = final_stems
         self.visualization_cylinders = visualization_cylinders
 
-    def step_7_ellipse_fit(self, height_ll=-1, height_ul=-1):
+    def step_7_ellipse_fit(self, height_ll: float = -1, height_ul: float = -1) -> None:
         """
         Extract the cylinder and ellipse diameter of each stem
 
@@ -423,17 +425,16 @@ class treetool:
 
     def full_process(
         self,
-        search_radius=0.1,
-        verticality_threshold=0.06,
-        curvature_threshold=0.1,
-        tolerance=0.1,
-        min_cluster_size=40,
-        max_cluster_size=6000000,
-        max_distance=0.4,
-        lowstems_height=5,
-        cutstems_height=5,
-        searchRadius_cylinder=0.1,
-    ):
+        search_radius: float = 0.1,
+        verticality_threshold: float = 0.06,
+        curvature_threshold: float = 0.1,
+        dbscan_eps: float = 0.1,
+        min_cluster_size: int = 40,
+        group_stems_max_distance: float = 0.4,
+        lowstems_height: int = 5,
+        cutstems_height: int = 5,
+        searchRadius_cylinder: float = 0.1,
+    ) -> None:
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute
         cluster_list
@@ -488,9 +489,9 @@ class treetool:
         print("step_2_normal_filtering")
         self.step_2_normal_filtering(search_radius, verticality_threshold, curvature_threshold)
         print("step_3_euclidean_clustering")
-        self.step_3_dbscan_clustering(tolerance, min_cluster_size)
+        self.step_3_dbscan_clustering(dbscan_eps, min_cluster_size)
         print("step_4_Group_Stems")
-        self.step_4_group_stems(max_distance)
+        self.step_4_group_stems(group_stems_max_distance)
         print("step_5_Get_Ground_Level_Trees")
         self.step_5_get_ground_level_trees(lowstems_height, cutstems_height)
         print("step_6_Get_Cylinder_Tree_Models")
@@ -499,7 +500,7 @@ class treetool:
         self.step_7_ellipse_fit()
         print("Done")
 
-    def save_results(self, save_location="results/myresults.csv"):
+    def save_results(self, save_location: str = "results/myresults.csv") -> None:
         """
         Save a csv with XYZ and DBH of each detected tree
 
