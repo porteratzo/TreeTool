@@ -22,20 +22,107 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import pclpy
 import open3d as o3d
 import numpy as np
+import pdal
+import os
+import random
+from typing import Union, Tuple, List, Optional
+
+
+def voxelize(points: np.ndarray, leaf: float = 0.1) -> np.ndarray:
+    """
+    Use voxelgrid to subsample a pointcloud
+
+    Args:
+        points : np.ndarray
+            (n,3) point cloud
+
+        leaf: float
+            Voxelsize
+
+    Returns:
+        VFmm: np.narray (n,3)
+            (n,3) subsampled Pointcloud
+
+    """
+    return_same = O3dPointsReturnSame(points)
+    downpcd = return_same.get().voxel_down_sample(voxel_size=leaf)
+    return return_same.get(downpcd)
+
+
+class O3dPointsReturnSame:
+    def __init__(self, points: Union[np.ndarray, o3d.geometry.PointCloud]) -> None:
+        """
+        Initializes the O3dPointsReturnSame object.
+
+        Args:
+            points: np.ndarray | o3d.geometry.PointCloud
+                The input points, either as a numpy array of shape (n, 3) or an
+                open3d.geometry.PointCloud object.
+        """
+        if isinstance(points, o3d.geometry.PointCloud):
+            self.is_cloud = True
+            self.pointcloud = points
+        else:
+            self.is_cloud = False
+            self.pointcloud = o3d.geometry.PointCloud()
+            self.pointcloud.points = o3d.utility.Vector3dVector(points)
+
+    def get(
+        self, pointcloud: Union[np.ndarray, o3d.geometry.PointCloud] = None
+    ) -> Union[np.ndarray, o3d.geometry.PointCloud]:
+        """
+        Retrieves the current point cloud or points.
+
+        Args:
+            pointcloud: np.ndarray | o3d.geometry.PointCloud, optional
+                The point cloud to retrieve. If None, uses the internally stored
+                point cloud.
+
+        Returns:
+            np.ndarray | o3d.geometry.PointCloud: The point cloud or points.
+            Returns the input type (numpy array or open3d.geometry.PointCloud).
+        """
+        if pointcloud is not None:
+            cur_cloud = pointcloud
+        else:
+            cur_cloud = self.pointcloud
+        if self.is_cloud:
+            return cur_cloud
+        else:
+            return np.asarray(cur_cloud.points)
+
+    def get_cloud(self) -> o3d.geometry.PointCloud:
+        """
+        Retrieves the internally stored point cloud.
+
+        Returns:
+            o3d.geometry.PointCloud: The internally stored point cloud.
+        """
+        return self.pointcloud
+
+    def get_points(self) -> np.ndarray:
+        """
+        Retrieves the points of the internally stored point cloud.
+
+        Returns:
+            np.ndarray: The points of the internally stored point cloud as a numpy array.
+        """
+        return np.asarray(self.pointcloud.points)
 
 
 def floor_remove(
-    points,
-    set_max_window_size=20,
-    set_slope=1.0,
-    set_initial_distance=0.5,
-    set_max_distance=3.0,
-):
+    points: np.ndarray,
+    set_max_window_size: int = 20,
+    set_slope: float = 1.0,
+    set_initial_distance: float = 0.5,
+    set_max_distance: float = 3.0,
+    cell_size: int = 1,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Takes a point cloud and returns 2 pointclouds, the first for non ground points and the second for ground points
+    Takes a point cloud and returns 2 pointclouds, the first for non ground points and the second
+    for ground points
 
     Args:
         points : np.ndarray
@@ -48,10 +135,12 @@ def floor_remove(
             Set the slope value to be used in computing the height threshold.
 
         set_initial_distance: float
-            Set the initial height above the parameterized ground surface to be considered a ground return.
+            Set the initial height above the parameterized ground surface to be considered a ground
+            return.
 
         set_max_distance: float
-            Set the maximum height above the parameterized ground surface to be considered a ground return.
+            Set the maximum height above the parameterized ground surface to be considered a ground
+            return.
 
     Returns:
         non_ground_points.xyz : np.narray (n,3)
@@ -61,28 +150,36 @@ def floor_remove(
             3d point cloud of only ground points
 
     """
-    PointCloud = points
-    ind = pclpy.pcl.vectors.Int()
-    pmf = pclpy.pcl.segmentation.ApproximateProgressiveMorphologicalFilter.PointXYZ()
-    pmf.setInputCloud(PointCloud)
-    pmf.setMaxWindowSize(set_max_window_size)
-    pmf.setSlope(set_slope)
-    pmf.setInitialDistance(set_initial_distance)
-    pmf.setMaxDistance(set_max_distance)
-    pmf.extract(ind)
-    ext = pclpy.pcl.filters.ExtractIndices.PointXYZ()
-    ground = pclpy.pcl.PointCloud.PointXYZ()
-    non_ground_points = pclpy.pcl.PointCloud.PointXYZ()
-    ext.setInputCloud(PointCloud)
-    ext.setIndices(ind)
-    ext.filter(ground)
-    ext.setNegative(True)
-    ext.filter(non_ground_points)
+    return_same = O3dPointsReturnSame(points)
+    o3d.io.write_point_cloud("floorseg_temp_file.pcd", return_same.get())
+    json = f"""
+    [
+        "floorseg_temp_file.pcd",
+        {{
+            "type":"filters.smrf",
+            "cell":{cell_size},
+            "scalar":{set_max_distance},
+            "slope":{set_slope},
+            "threshold":{set_initial_distance},
+            "window":{set_max_window_size}
+        }}
+    ]
+    """
+    pipeline = pdal.Pipeline(json)
+    pipeline.execute()
+    arrays = pipeline.arrays
+    points1 = arrays[0][arrays[0]["Classification"] == 1]
+    points2 = arrays[0][arrays[0]["Classification"] == 2]
+    Nogroundpoints = np.array(points1[["X", "Y", "Z"]].tolist())
+    ground = np.array(points2[["X", "Y", "Z"]].tolist())
+    os.remove("floorseg_temp_file.pcd")
 
-    return non_ground_points.xyz, ground.xyz
+    return return_same.get(Nogroundpoints), return_same.get(ground)
 
 
-def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
+def radius_outlier_removal(
+    points: np.ndarray, min_n: int = 6, radius: float = 0.4, organized: bool = True
+) -> np.ndarray:
     """
     Takes a point cloud and removes points that have less than minn neigbors in a certain radius
 
@@ -105,18 +202,30 @@ def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
             (n,3) Pointcloud with outliers removed
 
     """
-    ror_filter = pclpy.pcl.filters.RadiusOutlierRemoval.PointXYZ()
-    cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    ror_filter.setInputCloud(cloud)
-    ror_filter.setMinNeighborsInRadius(min_n)
-    ror_filter.setRadiusSearch(radius)
-    ror_filter.setKeepOrganized(organized)
-    filtered_point_cloud = pclpy.pcl.PointCloud.PointXYZ()
-    ror_filter.filter(filtered_point_cloud)
-    return filtered_point_cloud.xyz
+
+    return_same = O3dPointsReturnSame(points)
+    ror_filter = return_same.get()
+    cl, ind = ror_filter.remove_radius_outlier(nb_points=min_n, radius=radius)
+    if organized:
+        na_idx = np.delete(np.arange(len(ror_filter.points)), ind)
+        return_points = np.asanyarray(ror_filter.points)
+        return_points[na_idx] = np.nan
+        _return_same = O3dPointsReturnSame(return_points)
+        cl = return_same.get(_return_same.get())
+    return cl
 
 
-def extract_normals(points, search_radius=0.1):
+def compute_eigenvalues(chunk_of_matrices: List[np.ndarray]) -> List[float]:
+    _eigenvalues_list = []
+    for matrix in chunk_of_matrices:
+        h1, h2, h3 = np.linalg.eigvals(matrix)
+        _eigenvalues_list.append(h3 / (h1 + h2 + h3))
+    return _eigenvalues_list
+
+
+def extract_normals(
+    points: np.ndarray, search_radius: float = 0.1
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Takes a point cloud and approximates their normals using PCA
 
@@ -125,27 +234,30 @@ def extract_normals(points, search_radius=0.1):
             (n,3) point cloud
 
         search_radius: float
-            Radius of the sphere a point can be in to be considered in the calculation of a sample points' normal
+            Radius of the sphere a point can be in to be considered in the calculation of a sample
+            points' normal
 
     Returns:
         normals : np.narray (n,3)
             (n,3) Normal vectors corresponding to the points in the input point cloud
 
     """
-    cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    cloud_normal_estimator = pclpy.pcl.features.NormalEstimationOMP.PointXYZ_Normal()
-    tree = pclpy.pcl.search.KdTree.PointXYZ()
-    cloud_normal_estimator.setInputCloud(cloud)
-    cloud_normal_estimator.setSearchMethod(tree)
-    cloud_normal_estimator.setRadiusSearch(search_radius)
-    normals = pclpy.pcl.PointCloud.Normal()
-    cloud_normal_estimator.compute(normals)
-    return normals
+    return_same = O3dPointsReturnSame(points)
+    PointCloudV = return_same.get_cloud()
+    kd_tree = o3d.geometry.KDTreeSearchParamRadius(search_radius)
+    PointCloudV.estimate_normals(kd_tree)
+    PointCloudV.estimate_covariances(kd_tree)
+
+    cov = np.asarray(PointCloudV.covariances)
+    eigenvalues = np.linalg.eigvals(cov)
+    result = eigenvalues[:, 0] / np.sum(eigenvalues, axis=1)
+
+    return np.asarray(PointCloudV.normals), np.asarray(result)
 
 
-def euclidean_cluster_extract(
-    points, tolerance=2, min_cluster_size=20, max_cluster_size=25000
-):
+def dbscan_cluster_extract(
+    points: np.ndarray, eps: float = 2, min_points: int = 20
+) -> List[np.ndarray]:
     """
     Takes a point cloud and clusters the points with euclidean clustering
 
@@ -168,304 +280,240 @@ def euclidean_cluster_extract(
             List of (n,3) Pointclouds representing each cluster
 
     """
-    filtered_points = pclpy.pcl.segmentation.EuclideanClusterExtraction.PointXYZ()
-    kd_tree = pclpy.pcl.search.KdTree.PointXYZ()
-    points_to_cluster = pclpy.pcl.PointCloud.PointXYZ(points)
-
-    kd_tree.setInputCloud(points_to_cluster)
-    filtered_points.setInputCloud(points_to_cluster)
-    filtered_points.setClusterTolerance(tolerance)
-    filtered_points.setMinClusterSize(min_cluster_size)
-    filtered_points.setMaxClusterSize(max_cluster_size)
-    filtered_points.setSearchMethod(kd_tree)
-
-    point_indexes = pclpy.pcl.vectors.PointIndices()
-    filtered_points.extract(point_indexes)
-
-    cluster_list = [points_to_cluster.xyz[i2.indices] for i2 in point_indexes]
+    return_same = O3dPointsReturnSame(points)
+    PointCloudV = return_same.get_cloud()
+    labels = PointCloudV.cluster_dbscan(
+        eps=eps,
+        min_points=min_points,
+    )
+    cluster_list = [
+        return_same.get_points()[np.asarray(labels) == label]
+        for label in set(labels)
+        if label != -1
+    ]
     return cluster_list
 
 
-def region_growing(
-    Points, ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30.0, curvature=1.0
-):
-    """
-    Takes a point cloud and clusters the points with region growing
+# Function to fit a cylinder model using RANSAC
+def fit_cylinder_ransac(
+    points: np.ndarray,
+    max_iterations: int = 1000,
+    distance_threshold: float = 0.01,
+    rlim: List[Optional[float]] = [None, None],
+) -> Tuple[np.ndarray, np.ndarray]:
 
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
+    def compute_inliers(points, axis_point1, axis_point2, radius, distance_threshold):
+        axis_vector = axis_point2 - axis_point1
+        axis_length = np.linalg.norm(axis_vector)
+        axis_unit_vector = axis_vector / axis_length
 
-        Ksearch: int
-            Number of points used to estimate a points normal
+        point_vectors = points - axis_point1
+        projection_lengths = np.dot(point_vectors, axis_unit_vector)
+        projection_points = axis_point1 + np.outer(projection_lengths, axis_unit_vector)
 
-        minc: int
-            Minimum number of points a cluster must have to be returned
+        distances_to_axis = np.linalg.norm(projection_points - points, axis=1)
+        surface_distances = np.abs(distances_to_axis - radius)
 
-        maxc: int
-            Maximum number of points a cluster must have to be returned
+        return np.where(surface_distances < distance_threshold)[0]
 
-        nn: int
-            Number of nearest neighbors used by the region growing algorithm
+    best_cylinder = None
+    best_inliers = []
 
-        smoothness:
-            Smoothness threshold used in region growing
+    num_points = points.shape[0]
 
-        curvature:
-            Curvature threshold used in region growing
+    for _ in range(max_iterations):
+        # Randomly sample 3 points to define a cylinder (axis and radius)
+        sample_indices = random.sample(range(num_points), 3)
+        sample_points = points[sample_indices]
 
-    Returns:
-        region_growing_clusters: list
-            list of (n,3) Pointclouds representing each cluster
+        # Define the cylinder axis (from first two points) and radius (from third point)
+        axis_point1, axis_point2, sample_point3 = sample_points
+        axis_vector = axis_point2 - axis_point1
+        radius = np.linalg.norm(
+            np.cross(sample_point3 - axis_point1, axis_vector)
+        ) / np.linalg.norm(axis_vector)
 
-    """
-    pointcloud = pclpy.pcl.PointCloud.PointXYZ(Points)
-    pointcloud_normals = pclpy.pcl.features.NormalEstimation.PointXYZ_Normal()
-    tree = pclpy.pcl.search.KdTree.PointXYZ()
+        # Measure inliers by calculating distances of all points to the cylinder
 
-    pointcloud_normals.setInputCloud(pointcloud)
-    pointcloud_normals.setSearchMethod(tree)
-    pointcloud_normals.setKSearch(ksearch)
-    normals = pclpy.pcl.PointCloud.Normal()
-    pointcloud_normals.compute(normals)
-
-    region_growing_clusterer = pclpy.pcl.segmentation.RegionGrowing.PointXYZ_Normal()
-    region_growing_clusterer.setInputCloud(pointcloud)
-    region_growing_clusterer.setInputNormals(normals)
-    region_growing_clusterer.setMinClusterSize(minc)
-    region_growing_clusterer.setMaxClusterSize(maxc)
-    region_growing_clusterer.setSearchMethod(tree)
-    region_growing_clusterer.setNumberOfNeighbours(nn)
-    region_growing_clusterer.setSmoothnessThreshold(smoothness / 180.0 * np.pi)
-    region_growing_clusterer.setCurvatureThreshold(curvature)
-
-    clusters = pclpy.pcl.vectors.PointIndices()
-    region_growing_clusterer.extract(clusters)
-
-    region_growing_clusters = [pointcloud.xyz[i2.indices] for i2 in clusters]
-    return region_growing_clusters
+        if rlim[0] is None or radius > rlim[0]:
+            if rlim[1] is None or radius < rlim[1]:
+                inliers = compute_inliers(
+                    points, axis_point1, axis_point2, radius, distance_threshold
+                )
+                # Track the best model (with the most inliers)
+                if len(inliers) > len(best_inliers):
+                    best_inliers = inliers
+                    best_cylinder = np.concatenate(
+                        [axis_point1, axis_point2, np.array(radius)[None]]
+                    )
+    best_cylinder[3:6] = best_cylinder[3:6] - best_cylinder[0:3]
+    best_cylinder[3:6] = best_cylinder[3:6] / np.linalg.norm(best_cylinder[3:6])
+    return best_inliers, best_cylinder
 
 
-def segment(
-    points,
-    model=pclpy.pcl.sample_consensus.SACMODEL_LINE,
-    method=pclpy.pcl.sample_consensus.SAC_RANSAC,
-    miter=1000,
-    distance=0.5,
-    rlim=[0, 0.5],
-):
-    """
-    Takes a point cloud and removes points that have less than minn neigbors in a certain radius
+# Function to fit a stick model using RANSAC
+def fit_stick_ransac(
+    point_cloud: o3d.geometry.PointCloud,
+    max_iterations: int = 1000,
+    distance_threshold: float = 0.01,
+) -> Tuple[Tuple[np.ndarray, np.ndarray], List[int]]:
+    def point_to_line_distance(point, line_point1, line_point2):
+        # Vector from line_point1 to line_point2
+        line_vector = line_point2 - line_point1
+        point_vector = point - line_point1
 
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
+        # Projection of point onto the line
+        projection = np.dot(point_vector, line_vector) / np.linalg.norm(line_vector)
+        projection_point = line_point1 + (projection / np.linalg.norm(line_vector)) * line_vector
 
-        model: int
-            A pclpy.pcl.sample_consensus.MODEL value representing a ransac model
+        # Perpendicular distance from point to the line
+        distance = np.linalg.norm(point - projection_point)
 
-        method: float
-            pclpy.pcl.sample_consensus.METHOD to use
+        return distance
 
-        miter: bool
-            Maximum iterations for ransac
+    best_stick = None
+    best_inliers = []
 
-        distance:
-            Maximum distance a point can be from the model
+    points = np.asarray(point_cloud.points)
+    num_points = points.shape[0]
 
-        rlim:
-            Radius limit for cylinder model
+    for _ in range(max_iterations):
+        # Randomly sample 2 points to define a line (stick axis)
+        sample_indices = random.sample(range(num_points), 2)
+        sample_points = points[sample_indices]
 
+        # Define the stick axis (line) using two points
+        line_point1, line_point2 = sample_points
 
-    Returns:
-        pI.indices: np.narray (n)
-            Indices of points that fit the model
+        # Measure inliers by calculating distances of all points to the stick axis (line)
+        inliers = []
+        for i, point in enumerate(points):
+            dist = point_to_line_distance(point, line_point1, line_point2)
+            if dist < distance_threshold:
+                inliers.append(i)
 
-        Mc.values: np.narray (n)
-            Model coefficients
+        # Track the best model (with the most inliers)
+        if len(inliers) > len(best_inliers):
+            best_inliers = inliers
+            best_stick = (line_point1, line_point2)
 
-    """
-    pointcloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    segmenter = pclpy.pcl.segmentation.SACSegmentation.PointXYZ()
-
-    segmenter.setInputCloud(pointcloud)
-    segmenter.setDistanceThreshold(distance)
-    segmenter.setOptimizeCoefficients(True)
-    segmenter.setMethodType(method)
-    segmenter.setModelType(model)
-    segmenter.setMaxIterations(miter)
-    segmenter.setRadiusLimits(rlim[0], rlim[1])
-    pI = pclpy.pcl.PointIndices()
-    Mc = pclpy.pcl.ModelCoefficients()
-    segmenter.segment(pI, Mc)
-    return pI.indices, Mc.values
+    return best_stick, best_inliers
 
 
-def segment_normals(
-    points,
-    search_radius=20,
-    model=pclpy.pcl.sample_consensus.SACMODEL_LINE,
-    method=pclpy.pcl.sample_consensus.SAC_RANSAC,
-    normalweight=0.0001,
-    miter=1000,
-    distance=0.5,
-    rlim=[0, 0.5],
-):
-    """
-    Takes a point cloud and removes points that have less than minn neigbors in a certain radius
+if False:
 
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
+    def region_growing(
+        Points: np.ndarray,
+        ksearch: int = 30,
+        minc: int = 20,
+        maxc: int = 100000,
+        nn: int = 30,
+        smoothness: float = 30.0,
+        curvature: float = 1.0,
+    ) -> List[np.ndarray]:
+        """
+        Takes a point cloud and clusters the points with region growing
 
-        search_radius: float
-            Radius of the sphere a point can be in to be considered in the calculation of a sample points' normal
+        Args:
+            points : np.ndarray
+                (n,3) point cloud
 
-        model: int
-            A pclpy.pcl.sample_consensus.MODEL value representing a ransac model
+            Ksearch: int
+                Number of points used to estimate a points normal
 
-        method: float
-            pclpy.pcl.sample_consensus.METHOD to use
+            minc: int
+                Minimum number of points a cluster must have to be returned
 
-        normalweight:
-            Normal weight for ransacfromnormals
+            maxc: int
+                Maximum number of points a cluster must have to be returned
 
-        miter: bool
-            Maximum iterations for ransac
+            nn: int
+                Number of nearest neighbors used by the region growing algorithm
 
-        distance:
-            Maximum distance a point can be from the model
+            smoothness:
+                Smoothness threshold used in region growing
 
-        rlim:
-            Radius limit for cylinder model
+            curvature:
+                Curvature threshold used in region growing
 
+        Returns:
+            region_growing_clusters: list
+                list of (n,3) Pointclouds representing each cluster
 
-    Returns:
-        pI.indices: np.narray (n)
-            Indices of points that fit the model
+        """
+        pointcloud = pclpy.pcl.PointCloud.PointXYZ(Points)
+        pointcloud_normals = pclpy.pcl.features.NormalEstimation.PointXYZ_Normal()
+        tree = pclpy.pcl.search.KdTree.PointXYZ()
 
-        Mc.values: np.narray (n)
-            Model coefficients
+        pointcloud_normals.setInputCloud(pointcloud)
+        pointcloud_normals.setSearchMethod(tree)
+        pointcloud_normals.setKSearch(ksearch)
+        normals = pclpy.pcl.PointCloud.Normal()
+        pointcloud_normals.compute(normals)
 
-    """
-    pointcloud_normals = extract_normals(points, search_radius)
+        region_growing_clusterer = pclpy.pcl.segmentation.RegionGrowing.PointXYZ_Normal()
+        region_growing_clusterer.setInputCloud(pointcloud)
+        region_growing_clusterer.setInputNormals(normals)
+        region_growing_clusterer.setMinClusterSize(minc)
+        region_growing_clusterer.setMaxClusterSize(maxc)
+        region_growing_clusterer.setSearchMethod(tree)
+        region_growing_clusterer.setNumberOfNeighbours(nn)
+        region_growing_clusterer.setSmoothnessThreshold(smoothness / 180.0 * np.pi)
+        region_growing_clusterer.setCurvatureThreshold(curvature)
 
-    pointcloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    segmenter = pclpy.pcl.segmentation.SACSegmentationFromNormals.PointXYZ_Normal()
+        clusters = pclpy.pcl.vectors.PointIndices()
+        region_growing_clusterer.extract(clusters)
 
-    segmenter.setInputCloud(pointcloud)
-    segmenter.setInputNormals(pointcloud_normals)
-    segmenter.setDistanceThreshold(distance)
-    segmenter.setOptimizeCoefficients(True)
-    segmenter.setMethodType(method)
-    segmenter.setModelType(model)
-    segmenter.setMaxIterations(miter)
-    segmenter.setRadiusLimits(rlim[0], rlim[1])
-    segmenter.setDistanceFromOrigin(0.4)
-    segmenter.setNormalDistanceWeight(normalweight)
-    pI = pclpy.pcl.PointIndices()
-    Mc = pclpy.pcl.ModelCoefficients()
-    segmenter.segment(pI, Mc)
-    return pI.indices, Mc.values
+        region_growing_clusters = [pointcloud.xyz[i2.indices] for i2 in clusters]
+        return region_growing_clusters
 
+    def findstemsLiDAR(pointsXYZ: np.ndarray) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+        """
+        Takes a point cloud from a Cylindrical LiDAR and extract stems and their models
 
-def findstemsLiDAR(pointsXYZ):
-    """
-    Takes a point cloud from a Cylindrical LiDAR and extract stems and their models
+        Args:
+            points : np.ndarray
+                (n,3) point cloud
 
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
+        Returns:
+            stemsR : list(np.narray (n,3))
+                List of (n,3) Pointclouds belonging to each stem
 
-    Returns:
-        stemsR : list(np.narray (n,3))
-            List of (n,3) Pointclouds belonging to each stem
+            models : list(np.narray (n))
+                List of model coefficients corresponding to each extracted stem
 
-        models : list(np.narray (n))
-            List of model coefficients corresponding to each extracted stem
+        """
+        non_ground_points, ground = floor_remove(pointsXYZ)
+        flatpoints = np.hstack(
+            [
+                non_ground_points[:, 0:2],
+                np.zeros_like(non_ground_points)[:, 0:1],
+            ]
+        )
 
-    """
-    non_ground_points, ground = floor_remove(pointsXYZ)
-    flatpoints = np.hstack(
-        [non_ground_points[:, 0:2], np.zeros_like(non_ground_points)[:, 0:1]]
-    )
+        filtered_points = radius_outlier_removal(flatpoints)
+        notgoodpoints = non_ground_points[np.isnan(filtered_points[:, 0])]
+        goodpoints = non_ground_points[np.bitwise_not(np.isnan(filtered_points[:, 0]))]
 
-    filtered_points = radius_outlier_removal(flatpoints)
-    notgoodpoints = non_ground_points[np.isnan(filtered_points[:, 0])]
-    goodpoints = non_ground_points[np.bitwise_not(np.isnan(filtered_points[:, 0]))]
+        cluster_list = dbscan_cluster_extract(goodpoints)
+        rg_clusters = []
+        for i in cluster_list:
+            rg_clusters.append(region_growing(i))
 
-    cluster_list = euclidean_cluster_extract(goodpoints)
-    rg_clusters = []
-    for i in cluster_list:
-        rg_clusters.append(region_growing(i))
-
-    models = []
-    stem_clouds = []
-    for i in rg_clusters:
-        for p in i:
-            indices, model = segment_normals(p)
-            prop = len(p[indices]) / len(p)
-            if (
-                len(indices) > 1
-                and prop > 0.0
-                and np.arccos(np.dot([0, 0, 1], model[3:6])) < 0.6
-            ):
-                points = p[indices]
-                PC, _, _ = Plane.getPrincipalComponents(points)
-                if PC[0] / PC[1] > 10:
-                    stem_clouds.append(points)
-                    models.append(model)
-    return stem_clouds, models
-
-
-def voxelize(points, leaf=0.1, use_o3d=False):
-    """
-    Use voxelgrid to subsample a pointcloud
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        leaf: float
-            Voxelsize
-
-    Returns:
-        VFmm: np.narray (n,3)
-            (n,3) subsampled Pointcloud
-
-    """
-    if use_o3d:
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        downpcd = pcd.voxel_down_sample(voxel_size=leaf)
-        return np.array(downpcd.points)
-    else:
-        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
-            cloud = points
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZRGB()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZRGB()
-        else:
-            cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZ()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZ()
-        voxel_filter.setLeafSize(leaf, leaf, leaf)
-        voxel_filter.setInputCloud(cloud)
-
-        voxel_filter.filter(filtered_pointcloud)
-        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
-            return filtered_pointcloud
-        else:
-            return filtered_pointcloud.xyz
-
-def box_crop(points, min, max):
-    if type(points) == pclpy.pcl.PointCloud.PointXYZ:
-        sub_pcd = pclpy.pcl.PointCloud.PointXYZ()
-        cropfilter = pclpy.pcl.filters.CropBox.PointXYZ()
-    elif pclpy.pcl.PointCloud.PointXYZRGB:
-        sub_pcd = pclpy.pcl.PointCloud.PointXYZRGB()
-        cropfilter = pclpy.pcl.filters.CropBox.PointXYZ()
-    cropfilter.setMin(np.asarray(min))
-    cropfilter.setMax(np.asarray(max))
-    cropfilter.setInputCloud(points)
-    cropfilter.filter(sub_pcd)
-    return sub_pcd.xyz
+        models = []
+        stem_clouds = []
+        for i in rg_clusters:
+            for p in i:
+                indices, model = segment_normals(p)
+                prop = len(p[indices]) / len(p)
+                if (
+                    len(indices) > 1
+                    and prop > 0.0
+                    and np.arccos(np.dot([0, 0, 1], model[3:6])) < 0.6
+                ):
+                    points = p[indices]
+                    PC, _, _ = Plane.getPrincipalComponents(points)
+                    if PC[0] / PC[1] > 10:
+                        stem_clouds.append(points)
+                        models.append(model)
+        return stem_clouds, models

@@ -1,15 +1,18 @@
 # run: conda env create --file environment.yml
 name: treetool
 channels:
-  - "conda-forge"
-  - "davidcaron"
-  - "conda-forge/label/gcc7"
+  - conda-forge
 dependencies:
-- davidcaron::pclpy
-- conda-forge/label/gcc7::qhull
-- jupyter
-- ipykernel
-- matplotlib
-- pip
-- pip:
-  - treetool
+  - python=3.10
+  - python-pdal
+  - pip
+  - open3d
+  - matplotlib
+  - pandas
+  - numpy>=1.18.0,<2.0.0
+  - scipy
+  - jupyter
+  - pip:
+    - git+https://github.com/porteratzo/porteratzo3D.git
+    - lsq-ellipse
+    - ./
