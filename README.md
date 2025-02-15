@@ -7,25 +7,15 @@ The main objective of our work is to estimate the carbon content of trees in a f
 
 treetool is made up of some sample notebooks and three libraries segTree, treetool and Utils. segTree contains several useful functions that allow us to quickly perform operations on point clouds. treetool contains our main class. When called, it performs the complete process of tree detection and extraction of diameters at chest height. Finally, Utils contains special functions required by the internal processes and functions for displaying point clouds.
 
-# Installation
-might need to install pdal with sudo apt install pdal first
 # Hardware requirements
 The requirements will depend mainly on the size of the point clouds that will be worked with, since a cloud can vary between hundreds of thousands to hundreds of millions of points. The recommended requirements are designed to process clouds with around ten million points with good fluency.
-Minimum technical requirements
-• Windows 10
-Processor: 1 GHz or more
-• RAM: 8 GB
-• Graphics: DirectX9 or newer
 
 Recommended technical requirements
-• Windows 10
+• Ubuntu
 • Processor: 2 GHz or more, 2 or more cores
 • RAM: 16 GB
 • Graphics: Dedicated video card with 4GB of VRAM
 
-# Software requirements
-Anaconda
-Python 3.8
 
 # Install Anaconda
 Anaconda is a package manager system that may make you life easier with your setup. If you do not have it installed in your system, you may want to download it and install it from https://www.anaconda.com/products/individual/get-started

@@ -131,3 +131,4 @@ data/
 metrics*
 results/myresults.csv
 Downsampling_old.ipynb
+*.pdf

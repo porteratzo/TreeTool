@@ -80,7 +80,7 @@ class treetool:
         set_max_window_size: int = 20,
         set_slope: float = 1.0,
         set_initial_distance: float = 0.5,
-        set_max_distance: float = 3.0,
+        set_max_distance: float = 0.5,
         set_cell_size: float = 1.0,
     ) -> None:
         """
