@@ -17,8 +17,7 @@ setup(
         "pandas",
         "numpy>=1.18.0,<2.0.0",
         "scipy",
-        "laspy",
-        "porteratzolibs",
+        "git+https://github.com/porteratzo/porteratzo3D.git",
     ],
     classifiers=[],
 )
