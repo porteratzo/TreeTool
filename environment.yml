@@ -15,4 +15,4 @@ dependencies:
   - pip:
     - git+https://github.com/porteratzo/porteratzo3D.git
     - lsq-ellipse
-    - ./
+    
