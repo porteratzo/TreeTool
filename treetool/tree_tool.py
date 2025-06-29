@@ -33,7 +33,7 @@ from typing import Union
 
 
 def set_point_cloud(
-    input_point_cloud: Union[np.ndarray, o3d.geometry.PointCloud]
+    input_point_cloud: Union[np.ndarray, o3d.geometry.PointCloud],
 ) -> o3d.geometry.PointCloud:
     """
     Resets the point cloud that treetool will process
@@ -288,6 +288,8 @@ class treetool:
         # and obtaining the coresponding Z coordinate from our quadratic ground model
         self.stems_with_ground = []
         for i in self.complete_Stems:
+            if len(i) < 1:
+                continue
             center = np.mean(i, 0)
             X, Y = center[:2]
             if not use_sampling:
@@ -298,11 +300,11 @@ class treetool:
             else:
                 _size = 0.5
                 while True:
-                    sub_pcd = o3d.geometry.crop_point_cloud(
-                        self.ground_cloud,
-                        np.hstack([X - _size, Y - _size, -100, 1]),
-                        np.hstack([X + _size, Y + _size, 100, 1]),
+                    bbox = o3d.geometry.AxisAlignedBoundingBox(
+                        min_bound=np.hstack([X - _size, Y - _size, -100]),
+                        max_bound=np.hstack([X + _size, Y + _size, 100]),
                     )
+                    sub_pcd = self.ground_cloud.crop(bbox)
                     if len(np.asarray(sub_pcd.points)) > 5:
                         Z = [np.mean(np.asarray(sub_pcd.points)[:, 2])]
                         break
